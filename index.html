@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Klyro — Quiet luxury dresses</title>
+  <meta name="description" content="Klyro — quietly luxurious dresses, made to be lived in." />
+
+  <!-- ===== FAVICON (the Chrome-tab icon) ===== -->
+  <!-- This embedded gold "K" mark needs no extra file. -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23b79e3a'/><text x='32' y='46' font-family='Georgia,serif' font-size='40' font-weight='700' fill='white' text-anchor='middle'>K</text></svg>" />
+  <!-- To use your OWN icon file instead, drop a square PNG next to this file
+       and replace the line above with:
+       <link rel="icon" type="image/png" href="klyro-icon.png" />
+       <link rel="apple-touch-icon" href="klyro-icon.png" />               -->
+  <!-- ========================================= -->
+
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.28.4/babel.min.js"></script>
+  <style>html,body{margin:0;padding:0;background:#FBF9F4;}</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo } = React;
+
+const ICONS = {
+  bag: (<g><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></g>),
+  plus: (<g><path d="M12 5v14"/><path d="M5 12h14"/></g>),
+  minus: (<g><path d="M5 12h14"/></g>),
+  trash: (<g><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></g>),
+  x: (<g><path d="M18 6 6 18"/><path d="M6 6l12 12"/></g>),
+  menu: (<g><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></g>),
+  heart: (<g><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></g>),
+  lock: (<g><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></g>),
+  upload: (<g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></g>),
+  check: (<g><path d="M20 6 9 17l-5-5"/></g>),
+  arrowRight: (<g><path d="M5 12h14"/><path d="M13 5l7 7-7 7"/></g>),
+  arrowLeft: (<g><path d="M19 12H5"/><path d="M11 5l-7 7 7 7"/></g>),
+  trendingUp: (<g><path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/></g>),
+  box: (<g><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></g>),
+  receipt: (<g><path d="M5 2v20l2.5-1.5L10 22l2-1.5 2 1.5 2.5-1.5L19 22V2l-2.5 1.5L14 2l-2 1.5L10 2 7.5 3.5 5 2Z"/><path d="M8 8h8"/><path d="M8 12h8"/></g>),
+  dashboard: (<g><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></g>),
+  alert: (<g><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></g>),
+  chevronRight: (<g><path d="M9 18l6-6-6-6"/></g>),
+};
+
+function Ico({ name, size = 18, className, fill = "none" }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24"
+      fill={fill} stroke="currentColor" strokeWidth="1.7"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {ICONS[name]}
+    </svg>
+  );
+}
+
+/* ============================ Brand asset ============================ */
+const LOGO = "data:image/jpeg;base64,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";
+
+/* ============================ Config ============================ */
+const CURRENCY = "Rs ";                 // change to "$ " / "€ " etc.
+const ADMIN_PASSWORD = "klyro2026";     // demo gate — change before sharing
+const LOW_STOCK = 3;
+const SIZES_ALL = ["XS", "S", "M", "L", "XL"];
+
+/* ============================ Helpers ============================ */
+const money = (n) =>
+  CURRENCY + Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 0 });
+
+async function storeGet(key, fallback) {
+  try {
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+async function storeSet(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {
+    console.error("storage error", e);
+  }
+}
+
+// Downscale + compress an uploaded image to a base64 JPEG (keeps storage small)
+function compressImage(file, max = 900, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("read failed"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width: w, height: h } = img;
+        if (w > h && w > max) { h = Math.round((h * max) / w); w = max; }
+        else if (h >= w && h > max) { w = Math.round((w * max) / h); h = max; }
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        c.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(c.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = () => reject(new Error("decode failed"));
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+/* ============================ Seed catalogue ============================ */
+const SEED = [
+  {
+    id: "p1", name: "Seraphine Slip Gown", category: "Evening",
+    fabric: "100% Mulberry silk · bias-cut · concealed back zip",
+    description:
+      "A whisper-light bias gown that pours over the body. The cowl neck and fluid hem move with you — made for long evenings and slow exits.",
+    cost: 4200, price: 11900,
+    colors: [
+      { name: "Champagne", hex: "#E7D9B0", image: null, sizes: stock([2, 5, 6, 4, 2]) },
+      { name: "Midnight", hex: "#23262E", image: null, sizes: stock([1, 4, 5, 3, 2]) },
+      { name: "Rosewood", hex: "#7E4A4A", image: null, sizes: stock([0, 3, 4, 2, 1]) },
+    ],
+  },
+  {
+    id: "p2", name: "Aria Midi Dress", category: "Daywear",
+    fabric: "Italian crêpe · lined bodice · side seam pockets",
+    description:
+      "Structured shoulders ease into a softly gathered skirt. An everyday piece with evening manners — desk to dinner without a second thought.",
+    cost: 2600, price: 7400,
+    colors: [
+      { name: "Ivory", hex: "#F3EFE3", image: null, sizes: stock([3, 6, 8, 5, 3]) },
+      { name: "Olive", hex: "#6B6A3A", image: null, sizes: stock([2, 5, 6, 4, 2]) },
+    ],
+  },
+  {
+    id: "p3", name: "Lumière Tiered Gown", category: "Bridal",
+    fabric: "Silk organza over tulle · corseted bodice · button back",
+    description:
+      "Cloud-like tiers of organza catch every light in the room. A statement gown with a hand-finished corseted bodice.",
+    cost: 7800, price: 21500,
+    colors: [
+      { name: "Pearl", hex: "#EFEADD", image: null, sizes: stock([1, 3, 4, 3, 1]) },
+      { name: "Blush", hex: "#E9CFC8", image: null, sizes: stock([1, 2, 3, 2, 1]) },
+    ],
+  },
+  {
+    id: "p4", name: "Vesper Wrap Dress", category: "Daywear",
+    fabric: "Sandwashed satin · true wrap · self-tie waist",
+    description:
+      "The dress you reach for on instinct. A flattering true wrap in liquid satin that ties to your shape.",
+    cost: 2100, price: 6200,
+    colors: [
+      { name: "Gold", hex: "#B79E3A", image: null, sizes: stock([4, 7, 9, 6, 4]) },
+      { name: "Noir", hex: "#1C1B19", image: null, sizes: stock([3, 6, 7, 5, 3]) },
+      { name: "Terracotta", hex: "#B5673C", image: null, sizes: stock([2, 4, 5, 3, 2]) },
+    ],
+  },
+];
+function stock(arr) {
+  return SIZES_ALL.map((s, i) => ({ size: s, qty: arr[i] ?? 0 }));
+}
+
+/* ============================ Small components ============================ */
+function GownPlaceholder({ hex = "#B79E3A" }) {
+  return (
+    <svg viewBox="0 0 400 520" className="k-ph" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <linearGradient id={`bg${hex}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#FBF9F4" />
+          <stop offset="100%" stopColor="#F2EDDD" />
+        </linearGradient>
+        <linearGradient id={`sheen${hex}`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.35" />
+          <stop offset="45%" stopColor={hex} stopOpacity="0.95" />
+          <stop offset="100%" stopColor="#000000" stopOpacity="0.12" />
+        </linearGradient>
+      </defs>
+      <rect width="400" height="520" fill={`url(#bg${hex})`} />
+      <g>
+        <path
+          d="M200 96 C182 100 176 118 184 140 L168 200 C132 268 122 372 104 452 L296 452 C278 372 268 268 232 200 L216 140 C224 118 218 100 200 96 Z"
+          fill={`url(#sheen${hex})`} stroke="#ffffff" strokeOpacity="0.4" strokeWidth="1" />
+        <path d="M184 140 C195 150 205 150 216 140" fill="none" stroke="#000" strokeOpacity="0.10" strokeWidth="2" />
+        <line x1="100" y1="452" x2="300" y2="452" stroke="#000" strokeOpacity="0.06" strokeWidth="2" />
+      </g>
+    </svg>
+  );
+}
+
+function Img({ src, hex, alt }) {
+  return src
+    ? <img src={src} alt={alt} className="k-img" />
+    : <GownPlaceholder hex={hex} />;
+}
+
+function Eyebrow({ children }) {
+  return <span className="k-eyebrow">{children}</span>;
+}
+
+/* ============================ App ============================ */
+function App() {
+  const [ready, setReady] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
+
+  const [view, setView] = useState("shop"); // shop | product | checkout | confirm | admin-login | admin
+  const [activeProduct, setActiveProduct] = useState(null);
+  const [filter, setFilter] = useState("All");
+
+  const [cart, setCart] = useState([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [lastOrder, setLastOrder] = useState(null);
+
+  const [adminAuthed, setAdminAuthed] = useState(false);
+  const [adminTab, setAdminTab] = useState("dashboard");
+
+  /* ---- load ---- */
+  useEffect(() => {
+    (async () => {
+      let p = await storeGet("klyro_products", null);
+      if (!p) { p = SEED; await storeSet("klyro_products", p); }
+      const o = await storeGet("klyro_orders", []);
+      setProducts(p); setOrders(o); setReady(true);
+    })();
+  }, []);
+
+  const persistProducts = async (p) => { setProducts(p); await storeSet("klyro_products", p); };
+  const persistOrders = async (o) => { setOrders(o); await storeSet("klyro_orders", o); };
+
+  const go = (v) => { setView(v); setMenuOpen(false); window.scrollTo(0, 0); };
+
+  const categories = useMemo(
+    () => ["All", ...Array.from(new Set(products.map((p) => p.category).filter(Boolean)))],
+    [products]
+  );
+  const shown = useMemo(
+    () => (filter === "All" ? products : products.filter((p) => p.category === filter)),
+    [products, filter]
+  );
+  const cartCount = cart.reduce((n, i) => n + i.qty, 0);
+  const cartTotal = cart.reduce((n, i) => n + i.qty * i.price, 0);
+
+  /* ---- cart ops ---- */
+  function variantStock(productId, colorName, size) {
+    const p = products.find((x) => x.id === productId);
+    const c = p?.colors.find((x) => x.name === colorName);
+    return c?.sizes.find((x) => x.size === size)?.qty ?? 0;
+  }
+  function inCartQty(key) {
+    return cart.find((i) => i.key === key)?.qty ?? 0;
+  }
+  function addToCart(product, colorIdx, size, qty) {
+    const color = product.colors[colorIdx];
+    const key = `${product.id}|${color.name}|${size}`;
+    const avail = variantStock(product.id, color.name, size) - inCartQty(key);
+    if (avail <= 0) return false;
+    const add = Math.min(qty, avail);
+    setCart((prev) => {
+      const ex = prev.find((i) => i.key === key);
+      if (ex) return prev.map((i) => (i.key === key ? { ...i, qty: i.qty + add } : i));
+      return [...prev, {
+        key, productId: product.id, productName: product.name,
+        colorName: color.name, hex: color.hex, image: color.image,
+        size, price: product.price, cost: product.cost, qty: add,
+      }];
+    });
+    return true;
+  }
+  function setCartQty(key, qty) {
+    const item = cart.find((i) => i.key === key);
+    if (!item) return;
+    const max = variantStock(item.productId, item.colorName, item.size);
+    const q = Math.max(0, Math.min(qty, max));
+    setCart((prev) => q === 0 ? prev.filter((i) => i.key !== key) : prev.map((i) => i.key === key ? { ...i, qty: q } : i));
+  }
+  const removeItem = (key) => setCart((prev) => prev.filter((i) => i.key !== key));
+
+  /* ---- checkout ---- */
+  async function placeOrder(customer, payment) {
+    const next = products.map((p) => ({ ...p, colors: p.colors.map((c) => ({ ...c, sizes: c.sizes.map((s) => ({ ...s })) })) }));
+    cart.forEach((item) => {
+      const p = next.find((x) => x.id === item.productId);
+      const c = p?.colors.find((x) => x.name === item.colorName);
+      const s = c?.sizes.find((x) => x.size === item.size);
+      if (s) s.qty = Math.max(0, s.qty - item.qty);
+    });
+    const order = {
+      id: "KLY-" + Date.now().toString().slice(-6),
+      date: new Date().toISOString(),
+      items: cart.map((i) => ({ ...i })),
+      customer, payment, total: cartTotal,
+    };
+    await persistProducts(next);
+    await persistOrders([order, ...orders]);
+    setLastOrder(order);
+    setCart([]);
+    go("confirm");
+  }
+
+  if (!ready) {
+    return (
+      <div className="k-root k-splash">
+        <style>{CSS}</style>
+        <img src={LOGO} alt="Klyro" className="k-splash-mark" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="k-root">
+      <style>{CSS}</style>
+
+      {/* ---------------- Header ---------------- */}
+      <header className="k-header">
+        <div className="k-header-inner">
+          <button className="k-icon k-only-mobile" aria-label="Menu" onClick={() => setMenuOpen((v) => !v)}>
+            <Ico name="menu" size={20} />
+          </button>
+
+          <nav className="k-nav k-only-desk">
+            <button className={`k-navlink ${view === "shop" ? "is-on" : ""}`} onClick={() => { setFilter("All"); go("shop"); }}>Shop</button>
+            <button className="k-navlink" onClick={() => { setAdminAuthed(false); go("admin-login"); }}>Atelier</button>
+          </nav>
+
+          <button className="k-logo" onClick={() => go("shop")} aria-label="Klyro home">
+            <span className="k-logo-word">Klyro</span>
+            <Ico name="heart" size={13} className="k-logo-heart" fill="currentColor" />
+          </button>
+
+          <div className="k-header-right">
+            <button className="k-icon" aria-label="Atelier" onClick={() => { setAdminAuthed(false); go("admin-login"); }}>
+              <Ico name="lock" size={17} />
+            </button>
+            <button className="k-icon k-cartbtn" aria-label="Bag" onClick={() => setCartOpen(true)}>
+              <Ico name="bag" size={19} />
+              {cartCount > 0 && <span className="k-badge">{cartCount}</span>}
+            </button>
+          </div>
+        </div>
+
+        {menuOpen && (
+          <div className="k-mobile-menu">
+            <button onClick={() => { setFilter("All"); go("shop"); }}>Shop</button>
+            <button onClick={() => { setAdminAuthed(false); go("admin-login"); }}>Atelier</button>
+          </div>
+        )}
+      </header>
+
+      {/* ---------------- Views ---------------- */}
+      <main className="k-main">
+        {view === "shop" && (
+          <ShopView
+            products={shown} categories={categories} filter={filter} setFilter={setFilter}
+            onOpen={(p) => { setActiveProduct(p); go("product"); }}
+          />
+        )}
+
+        {view === "product" && activeProduct && (
+          <ProductView
+            product={products.find((p) => p.id === activeProduct.id) || activeProduct}
+            variantStock={variantStock} inCartQty={inCartQty}
+            onBack={() => go("shop")}
+            onAdd={(c, s, q) => { if (addToCart(products.find((p) => p.id === activeProduct.id), c, s, q)) setCartOpen(true); }}
+          />
+        )}
+
+        {view === "checkout" && (
+          <CheckoutView
+            cart={cart} total={cartTotal}
+            onBack={() => go("shop")}
+            onPlace={placeOrder}
+            setQty={setCartQty} removeItem={removeItem}
+          />
+        )}
+
+        {view === "confirm" && lastOrder && (
+          <ConfirmView order={lastOrder} onShop={() => go("shop")} />
+        )}
+
+        {view === "admin-login" && (
+          <AdminLogin onAuth={() => { setAdminAuthed(true); setAdminTab("dashboard"); go("admin"); }} onBack={() => go("shop")} />
+        )}
+
+        {view === "admin" && adminAuthed && (
+          <AdminView
+            tab={adminTab} setTab={setAdminTab}
+            products={products} orders={orders}
+            persistProducts={persistProducts}
+            onExit={() => { setAdminAuthed(false); go("shop"); }}
+          />
+        )}
+      </main>
+
+      {/* ---------------- Footer ---------------- */}
+      {view !== "admin" && (
+        <footer className="k-footer">
+          <img src={LOGO} alt="Klyro" className="k-foot-seal" />
+          <p className="k-foot-tag">Quietly luxurious dresses, made to be lived in.</p>
+          <div className="k-foot-links">
+            <button onClick={() => { setFilter("All"); go("shop"); }}>Collection</button>
+            <span>·</span>
+            <button onClick={() => { setAdminAuthed(false); go("admin-login"); }}>Atelier login</button>
+          </div>
+          <p className="k-foot-fine">© {new Date().getFullYear()} Klyro. Demo storefront.</p>
+        </footer>
+      )}
+
+      {/* ---------------- Cart drawer ---------------- */}
+      <CartDrawer
+        open={cartOpen} onClose={() => setCartOpen(false)}
+        cart={cart} total={cartTotal} setQty={setCartQty} removeItem={removeItem}
+        onCheckout={() => { setCartOpen(false); go("checkout"); }}
+        onShop={() => { setCartOpen(false); setFilter("All"); go("shop"); }}
+      />
+    </div>
+  );
+}
+
+/* ============================ Shop ============================ */
+function ShopView({ products, categories, filter, setFilter, onOpen }) {
+  return (
+    <div className="k-fade">
+      <section className="k-hero">
+        <Eyebrow>The Spring Atelier</Eyebrow>
+        <h1 className="k-hero-title">Dressed in light,<br /><em>cut for quiet luxury.</em></h1>
+        <p className="k-hero-sub">
+          Bias-cut silks, hand-finished gowns and everyday pieces with evening manners —
+          each made in limited colourways.
+        </p>
+        <button className="k-btn k-btn-gold" onClick={() => document.getElementById("k-grid")?.scrollIntoView({ behavior: "smooth" })}>
+          Shop the collection <Ico name="arrowRight" size={16} />
+        </button>
+      </section>
+
+      <div className="k-filters">
+        {categories.map((c) => (
+          <button key={c} className={`k-chip ${filter === c ? "is-on" : ""}`} onClick={() => setFilter(c)}>{c}</button>
+        ))}
+      </div>
+
+      <section id="k-grid" className="k-grid">
+        {products.length === 0 && <p className="k-empty">No pieces in this edit yet.</p>}
+        {products.map((p) => {
+          const total = p.colors.reduce((n, c) => n + c.sizes.reduce((m, s) => m + s.qty, 0), 0);
+          return (
+            <article key={p.id} className="k-card" onClick={() => onOpen(p)}>
+              <div className="k-card-img">
+                <Img src={p.colors[0].image} hex={p.colors[0].hex} alt={p.name} />
+                {total === 0 && <span className="k-sold">Sold out</span>}
+              </div>
+              <div className="k-card-body">
+                <span className="k-card-cat">{p.category}</span>
+                <h3 className="k-card-name">{p.name}</h3>
+                <div className="k-card-foot">
+                  <span className="k-price">{money(p.price)}</span>
+                  <span className="k-dots">
+                    {p.colors.map((c) => <i key={c.name} style={{ background: c.hex }} title={c.name} />)}
+                  </span>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </section>
+    </div>
+  );
+}
+
+/* ============================ Product detail ============================ */
+function ProductView({ product, variantStock, inCartQty, onBack, onAdd }) {
+  const [ci, setCi] = useState(0);
+  const [size, setSize] = useState(null);
+  const [qty, setQty] = useState(1);
+  const color = product.colors[ci];
+
+  useEffect(() => { setSize(null); setQty(1); }, [ci]);
+
+  const sizeStock = (s) => variantStock(product.id, color.name, s);
+  const key = size ? `${product.id}|${color.name}|${size}` : null;
+  const remaining = size ? sizeStock(size) - inCartQty(key) : 0;
+  const canAdd = size && remaining > 0;
+
+  return (
+    <div className="k-fade k-pdp">
+      <button className="k-back" onClick={onBack}><Ico name="arrowLeft" size={15} /> Collection</button>
+      <div className="k-pdp-grid">
+        <div className="k-pdp-media">
+          <div className="k-pdp-main"><Img src={color.image} hex={color.hex} alt={`${product.name} — ${color.name}`} /></div>
+          <div className="k-pdp-thumbs">
+            {product.colors.map((c, i) => (
+              <button key={c.name} className={`k-thumb ${i === ci ? "is-on" : ""}`} onClick={() => setCi(i)} aria-label={c.name}>
+                <Img src={c.image} hex={c.hex} alt={c.name} />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="k-pdp-info">
+          <span className="k-card-cat">{product.category}</span>
+          <h1 className="k-pdp-name">{product.name}</h1>
+          <p className="k-pdp-price">{money(product.price)}</p>
+          <p className="k-pdp-desc">{product.description}</p>
+
+          <div className="k-field">
+            <label className="k-label">Colour — <strong>{color.name}</strong></label>
+            <div className="k-swatches">
+              {product.colors.map((c, i) => (
+                <button key={c.name} className={`k-swatch ${i === ci ? "is-on" : ""}`} onClick={() => setCi(i)} title={c.name}>
+                  <i style={{ background: c.hex }} />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="k-field">
+            <label className="k-label">Size</label>
+            <div className="k-sizes">
+              {color.sizes.map((s) => {
+                const out = s.qty <= 0;
+                return (
+                  <button key={s.size} disabled={out}
+                    className={`k-size ${size === s.size ? "is-on" : ""} ${out ? "is-out" : ""}`}
+                    onClick={() => setSize(s.size)}>
+                    {s.size}
+                  </button>
+                );
+              })}
+            </div>
+            {size && remaining > 0 && remaining <= LOW_STOCK && (
+              <p className="k-lowstock"><Ico name="alert" size={13} /> Only {remaining} left in {color.name}</p>
+            )}
+            {size && remaining <= 0 && <p className="k-lowstock">That size is in your bag or sold out.</p>}
+          </div>
+
+          <div className="k-buyrow">
+            <div className="k-stepper">
+              <button onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Less"><Ico name="minus" size={15} /></button>
+              <span>{qty}</span>
+              <button onClick={() => setQty((q) => Math.min(remaining || 1, q + 1))} aria-label="More"><Ico name="plus" size={15} /></button>
+            </div>
+            <button className="k-btn k-btn-gold k-grow" disabled={!canAdd} onClick={() => onAdd(ci, size, qty)}>
+              {size ? "Add to bag" : "Select a size"} {canAdd && <Ico name="arrowRight" size={16} />}
+            </button>
+          </div>
+
+          <div className="k-spec">
+            <Eyebrow>Fabric &amp; care</Eyebrow>
+            <p>{product.fabric}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================ Cart drawer ============================ */
+function CartDrawer({ open, onClose, cart, total, setQty, removeItem, onCheckout, onShop }) {
+  return (
+    <>
+      <div className={`k-overlay ${open ? "is-on" : ""}`} onClick={onClose} />
+      <aside className={`k-drawer ${open ? "is-on" : ""}`} aria-hidden={!open}>
+        <div className="k-drawer-head">
+          <h2>Your bag</h2>
+          <button className="k-icon" onClick={onClose} aria-label="Close"><Ico name="x" size={20} /></button>
+        </div>
+
+        {cart.length === 0 ? (
+          <div className="k-drawer-empty">
+            <Ico name="bag" size={28} />
+            <p>Your bag is waiting.</p>
+            <button className="k-btn k-btn-ghost" onClick={onShop}>Browse the collection</button>
+          </div>
+        ) : (
+          <>
+            <div className="k-drawer-items">
+              {cart.map((i) => (
+                <div key={i.key} className="k-line">
+                  <div className="k-line-img"><Img src={i.image} hex={i.hex} alt={i.productName} /></div>
+                  <div className="k-line-info">
+                    <h4>{i.productName}</h4>
+                    <p className="k-line-meta">{i.colorName} · {i.size}</p>
+                    <div className="k-line-bottom">
+                      <div className="k-stepper k-stepper-sm">
+                        <button onClick={() => setQty(i.key, i.qty - 1)} aria-label="Less"><Ico name="minus" size={13} /></button>
+                        <span>{i.qty}</span>
+                        <button onClick={() => setQty(i.key, i.qty + 1)} aria-label="More"><Ico name="plus" size={13} /></button>
+                      </div>
+                      <span className="k-line-price">{money(i.qty * i.price)}</span>
+                    </div>
+                  </div>
+                  <button className="k-line-rm" onClick={() => removeItem(i.key)} aria-label="Remove"><Ico name="trash" size={15} /></button>
+                </div>
+              ))}
+            </div>
+            <div className="k-drawer-foot">
+              <div className="k-subtotal"><span>Subtotal</span><span>{money(total)}</span></div>
+              <p className="k-ship-note">Shipping &amp; taxes calculated at checkout.</p>
+              <button className="k-btn k-btn-gold k-full" onClick={onCheckout}>Checkout <Ico name="arrowRight" size={16} /></button>
+            </div>
+          </>
+        )}
+      </aside>
+    </>
+  );
+}
+
+/* ============================ Checkout ============================ */
+function CheckoutView({ cart, total, onBack, onPlace, setQty, removeItem }) {
+  const [c, setC] = useState({ name: "", phone: "", a1: "", a2: "", a3: "" });
+  const [card, setCard] = useState({ number: "", name: "", exp: "", cvc: "" });
+  const [errors, setErrors] = useState({});
+  const [placing, setPlacing] = useState(false);
+
+  const shipping = total > 0 ? 850 : 0;
+  const grand = total + shipping;
+
+  function validate() {
+    const e = {};
+    if (!c.name.trim()) e.name = "Add the name for delivery.";
+    if (!/^[0-9 +()-]{7,}$/.test(c.phone.trim())) e.phone = "Add a reachable phone number.";
+    if (!c.a1.trim()) e.a1 = "Address line 1 is required.";
+    const digits = card.number.replace(/\s/g, "");
+    if (digits.length < 12) e.cardNumber = "Enter a valid card number.";
+    if (!card.name.trim()) e.cardName = "Name on card is required.";
+    if (!/^\d{2}\/\d{2}$/.test(card.exp)) e.exp = "MM/YY";
+    if (!/^\d{3,4}$/.test(card.cvc)) e.cvc = "CVC";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  }
+
+  async function submit() {
+    if (cart.length === 0) return;
+    if (!validate()) { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+    setPlacing(true);
+    const last4 = card.number.replace(/\s/g, "").slice(-4);
+    await onPlace(
+      { name: c.name.trim(), phone: c.phone.trim(), address: [c.a1, c.a2, c.a3].filter(Boolean) },
+      { method: "Card", last4 }
+    );
+  }
+
+  const fmtCard = (v) => v.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
+  const fmtExp = (v) => { const d = v.replace(/\D/g, "").slice(0, 4); return d.length > 2 ? d.slice(0, 2) + "/" + d.slice(2) : d; };
+
+  if (cart.length === 0) {
+    return (
+      <div className="k-fade k-checkout-empty">
+        <h1 className="k-pdp-name">Your bag is empty</h1>
+        <button className="k-btn k-btn-gold" onClick={onBack}>Back to the collection</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="k-fade k-checkout">
+      <button className="k-back" onClick={onBack}><Ico name="arrowLeft" size={15} /> Continue shopping</button>
+      <h1 className="k-page-title">Checkout</h1>
+
+      <div className="k-checkout-grid">
+        <div className="k-checkout-forms">
+          <section className="k-panel">
+            <Eyebrow>01 — Delivery details</Eyebrow>
+            <Input label="Full name" value={c.name} err={errors.name} onChange={(v) => setC({ ...c, name: v })} placeholder="Recipient's name" />
+            <Input label="Phone number" value={c.phone} err={errors.phone} onChange={(v) => setC({ ...c, phone: v })} placeholder="+94 ..." />
+            <Input label="Address line 1" value={c.a1} err={errors.a1} onChange={(v) => setC({ ...c, a1: v })} placeholder="House / street" />
+            <Input label="Address line 2" value={c.a2} onChange={(v) => setC({ ...c, a2: v })} placeholder="Area / suburb (optional)" />
+            <Input label="Address line 3" value={c.a3} onChange={(v) => setC({ ...c, a3: v })} placeholder="City / postal code (optional)" />
+          </section>
+
+          <section className="k-panel">
+            <Eyebrow>02 — Payment</Eyebrow>
+            <p className="k-demo-note"><Ico name="lock" size={12} /> Demo checkout — no real card is charged. Connect a payment provider (e.g. Stripe) to go live.</p>
+            <Input label="Card number" value={card.number} err={errors.cardNumber} onChange={(v) => setCard({ ...card, number: fmtCard(v) })} placeholder="0000 0000 0000 0000" inputMode="numeric" />
+            <Input label="Name on card" value={card.name} err={errors.cardName} onChange={(v) => setCard({ ...card, name: v })} placeholder="As printed" />
+            <div className="k-row2">
+              <Input label="Expiry" value={card.exp} err={errors.exp} onChange={(v) => setCard({ ...card, exp: fmtExp(v) })} placeholder="MM/YY" inputMode="numeric" />
+              <Input label="CVC" value={card.cvc} err={errors.cvc} onChange={(v) => setCard({ ...card, cvc: v.replace(/\D/g, "").slice(0, 4) })} placeholder="123" inputMode="numeric" />
+            </div>
+          </section>
+        </div>
+
+        <aside className="k-summary">
+          <h3>Order summary</h3>
+          <div className="k-sum-items">
+            {cart.map((i) => (
+              <div key={i.key} className="k-sum-line">
+                <div className="k-sum-img"><Img src={i.image} hex={i.hex} alt={i.productName} /><span className="k-sum-qty">{i.qty}</span></div>
+                <div className="k-sum-info">
+                  <p className="k-sum-name">{i.productName}</p>
+                  <p className="k-sum-meta">{i.colorName} · {i.size}</p>
+                </div>
+                <button className="k-sum-rm" onClick={() => removeItem(i.key)} aria-label="Remove"><Ico name="x" size={14} /></button>
+                <span className="k-sum-price">{money(i.qty * i.price)}</span>
+              </div>
+            ))}
+          </div>
+          <div className="k-sum-totals">
+            <div><span>Subtotal</span><span>{money(total)}</span></div>
+            <div><span>Shipping</span><span>{money(shipping)}</span></div>
+            <div className="k-sum-grand"><span>Total</span><span>{money(grand)}</span></div>
+          </div>
+          <button className="k-btn k-btn-gold k-full" disabled={placing} onClick={submit}>
+            {placing ? "Placing order…" : <>Place order · {money(grand)}</>}
+          </button>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function Input({ label, value, onChange, placeholder, err, inputMode }) {
+  return (
+    <div className="k-field">
+      <label className="k-label">{label}</label>
+      <input className={`k-input ${err ? "is-err" : ""}`} value={value} placeholder={placeholder}
+        inputMode={inputMode} onChange={(e) => onChange(e.target.value)} />
+      {err && <span className="k-err">{err}</span>}
+    </div>
+  );
+}
+
+/* ============================ Confirmation ============================ */
+function ConfirmView({ order, onShop }) {
+  return (
+    <div className="k-fade k-confirm">
+      <div className="k-confirm-mark"><Ico name="check" size={30} /></div>
+      <Eyebrow>Order {order.id}</Eyebrow>
+      <h1 className="k-pdp-name">Thank you, {order.customer.name.split(" ")[0]}.</h1>
+      <p className="k-confirm-sub">
+        Your pieces are being prepared with care. A confirmation is on its way to {order.customer.phone}.
+      </p>
+      <div className="k-confirm-card">
+        <div className="k-confirm-rows">
+          {order.items.map((i) => (
+            <div key={i.key} className="k-confirm-line">
+              <span>{i.qty} × {i.productName} <em>· {i.colorName} · {i.size}</em></span>
+              <span>{money(i.qty * i.price)}</span>
+            </div>
+          ))}
+        </div>
+        <div className="k-confirm-ship">
+          <Eyebrow>Shipping to</Eyebrow>
+          <p>{order.customer.name}<br />{order.customer.address.join("<br/>")}</p>
+        </div>
+      </div>
+      <button className="k-btn k-btn-gold" onClick={onShop}>Continue shopping</button>
+    </div>
+  );
+}
+
+/* ============================ Admin login ============================ */
+function AdminLogin({ onAuth, onBack }) {
+  const [pw, setPw] = useState("");
+  const [err, setErr] = useState(false);
+  const submit = () => { if (pw === ADMIN_PASSWORD) onAuth(); else setErr(true); };
+  return (
+    <div className="k-fade k-login">
+      <div className="k-login-card">
+        <Ico name="lock" size={22} className="k-login-ico" />
+        <Eyebrow>Klyro Atelier</Eyebrow>
+        <h1 className="k-login-title">Studio access</h1>
+        <p className="k-login-sub">Manage products, stock and orders.</p>
+        <input type="password" className={`k-input ${err ? "is-err" : ""}`} placeholder="Password"
+          value={pw} onChange={(e) => { setPw(e.target.value); setErr(false); }}
+          onKeyDown={(e) => e.key === "Enter" && submit()} />
+        {err && <span className="k-err">That password isn’t right.</span>}
+        <button className="k-btn k-btn-gold k-full" onClick={submit}>Enter the studio</button>
+        <button className="k-btn k-btn-ghost k-full" onClick={onBack}>Back to store</button>
+        <p className="k-login-hint">Demo password: <code>{ADMIN_PASSWORD}</code></p>
+      </div>
+    </div>
+  );
+}
+
+/* ============================ Admin ============================ */
+function AdminView({ tab, setTab, products, orders, persistProducts, onExit }) {
+  const stats = useMemo(() => {
+    let revenue = 0, cost = 0, units = 0;
+    orders.forEach((o) => o.items.forEach((i) => { revenue += i.price * i.qty; cost += (i.cost || 0) * i.qty; units += i.qty; }));
+    const stockUnits = products.reduce((n, p) => n + p.colors.reduce((m, c) => m + c.sizes.reduce((k, s) => k + s.qty, 0), 0), 0);
+    const stockValue = products.reduce((n, p) => n + p.colors.reduce((m, c) => m + c.sizes.reduce((k, s) => k + s.qty * p.price, 0), 0), 0);
+    let low = 0;
+    products.forEach((p) => p.colors.forEach((c) => c.sizes.forEach((s) => { if (s.qty > 0 && s.qty <= LOW_STOCK) low++; })));
+    return { revenue, cost, profit: revenue - cost, units, stockUnits, stockValue, low, orderCount: orders.length };
+  }, [products, orders]);
+
+  const soldByProduct = useMemo(() => {
+    const m = {};
+    orders.forEach((o) => o.items.forEach((i) => {
+      m[i.productId] = m[i.productId] || { units: 0, profit: 0 };
+      m[i.productId].units += i.qty;
+      m[i.productId].profit += (i.price - (i.cost || 0)) * i.qty;
+    }));
+    return m;
+  }, [orders]);
+
+  return (
+    <div className="k-admin">
+      <aside className="k-admin-side">
+        <div className="k-admin-brand"><span className="k-logo-word">Klyro</span><small>Atelier</small></div>
+        <nav>
+          <button className={tab === "dashboard" ? "is-on" : ""} onClick={() => setTab("dashboard")}><Ico name="dashboard" size={17} /> Dashboard</button>
+          <button className={tab === "products" ? "is-on" : ""} onClick={() => setTab("products")}><Ico name="box" size={17} /> Products &amp; stock</button>
+          <button className={tab === "add" ? "is-on" : ""} onClick={() => setTab("add")}><Ico name="box" size={17} /> Add product</button>
+          <button className={tab === "orders" ? "is-on" : ""} onClick={() => setTab("orders")}><Ico name="receipt" size={17} /> Orders</button>
+        </nav>
+        <button className="k-admin-exit" onClick={onExit}>← Back to store</button>
+      </aside>
+
+      <div className="k-admin-main">
+        {tab === "dashboard" && <AdminDashboard stats={stats} products={products} soldByProduct={soldByProduct} />}
+        {tab === "products" && <AdminProducts products={products} soldByProduct={soldByProduct} persistProducts={persistProducts} />}
+        {tab === "add" && <AdminAdd products={products} persistProducts={persistProducts} onDone={() => setTab("products")} />}
+        {tab === "orders" && <AdminOrders orders={orders} />}
+      </div>
+    </div>
+  );
+}
+
+function Kpi({ icon, label, value, accent }) {
+  return (
+    <div className={`k-kpi ${accent ? "k-kpi-accent" : ""}`}>
+      <div className="k-kpi-ico">{icon}</div>
+      <div><p className="k-kpi-label">{label}</p><p className="k-kpi-value">{value}</p></div>
+    </div>
+  );
+}
+
+function AdminDashboard({ stats, products, soldByProduct }) {
+  const ranked = [...products].sort((a, b) => (soldByProduct[b.id]?.units || 0) - (soldByProduct[a.id]?.units || 0));
+  return (
+    <div className="k-fade">
+      <h1 className="k-admin-title">Dashboard</h1>
+      <div className="k-kpis">
+        <Kpi icon={<Ico name="trendingUp" size={18} />} label="Revenue" value={money(stats.revenue)} accent />
+        <Kpi icon={<Ico name="receipt" size={18} />} label="Profit" value={money(stats.profit)} accent />
+        <Kpi icon={<Ico name="box" size={18} />} label="Units sold" value={stats.units} />
+        <Kpi icon={<Ico name="box" size={18} />} label="Orders" value={stats.orderCount} />
+        <Kpi icon={<Ico name="box" size={18} />} label="In-stock units" value={stats.stockUnits} />
+        <Kpi icon={<Ico name="alert" size={18} />} label="Low-stock variants" value={stats.low} />
+      </div>
+
+      <div className="k-admin-card">
+        <h3>Best sellers &amp; margin</h3>
+        <table className="k-table">
+          <thead><tr><th>Product</th><th>Sold</th><th>Cost</th><th>Price</th><th>Margin</th><th>Profit earned</th></tr></thead>
+          <tbody>
+            {ranked.map((p) => {
+              const s = soldByProduct[p.id] || { units: 0, profit: 0 };
+              const margin = Math.round(((p.price - p.cost) / p.price) * 100);
+              return (
+                <tr key={p.id}>
+                  <td><strong>{p.name}</strong></td>
+                  <td>{s.units}</td>
+                  <td>{money(p.cost)}</td>
+                  <td>{money(p.price)}</td>
+                  <td><span className="k-pill">{margin}%</span></td>
+                  <td className="k-pos">{money(s.profit)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function AdminProducts({ products, soldByProduct, persistProducts }) {
+  function adjust(pid, cName, sz, delta) {
+    const next = products.map((p) => p.id !== pid ? p : {
+      ...p, colors: p.colors.map((c) => c.name !== cName ? c : {
+        ...c, sizes: c.sizes.map((s) => s.size !== sz ? s : { ...s, qty: Math.max(0, s.qty + delta) }),
+      }),
+    });
+    persistProducts(next);
+  }
+  function remove(pid) {
+    if (!window.confirm("Remove this product from the store?")) return;
+    persistProducts(products.filter((p) => p.id !== pid));
+  }
+
+  return (
+    <div className="k-fade">
+      <h1 className="k-admin-title">Products &amp; stock</h1>
+      {products.map((p) => {
+        const sold = soldByProduct[p.id]?.units || 0;
+        const total = p.colors.reduce((n, c) => n + c.sizes.reduce((m, s) => m + s.qty, 0), 0);
+        return (
+          <div key={p.id} className="k-admin-card k-prod-card">
+            <div className="k-prod-head">
+              <div className="k-prod-thumb"><Img src={p.colors[0].image} hex={p.colors[0].hex} alt={p.name} /></div>
+              <div className="k-prod-meta">
+                <h3>{p.name}</h3>
+                <p className="k-prod-sub">{p.category} · cost {money(p.cost)} · price {money(p.price)} · sold {sold} · {total} in stock</p>
+              </div>
+              <button className="k-mini-del" onClick={() => remove(p.id)}><Ico name="trash" size={15} /></button>
+            </div>
+            {p.colors.map((c) => (
+              <div key={c.name} className="k-color-row">
+                <div className="k-color-tag"><i style={{ background: c.hex }} /> {c.name}</div>
+                <div className="k-stock-grid">
+                  {c.sizes.map((s) => (
+                    <div key={s.size} className={`k-stock-cell ${s.qty > 0 && s.qty <= LOW_STOCK ? "is-low" : ""} ${s.qty === 0 ? "is-zero" : ""}`}>
+                      <span className="k-stock-size">{s.size}</span>
+                      <div className="k-stock-ctrl">
+                        <button onClick={() => adjust(p.id, c.name, s.size, -1)}><Ico name="minus" size={12} /></button>
+                        <span className="k-stock-qty">{s.qty}</span>
+                        <button onClick={() => adjust(p.id, c.name, s.size, +1)}><Ico name="plus" size={12} /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function AdminAdd({ products, persistProducts, onDone }) {
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("Daywear");
+  const [fabric, setFabric] = useState("");
+  const [description, setDescription] = useState("");
+  const [cost, setCost] = useState("");
+  const [price, setPrice] = useState("");
+  const [colors, setColors] = useState([blankColor()]);
+  const [err, setErr] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  function blankColor() {
+    return { id: uid(), name: "", hex: "#B79E3A", image: null, sizes: SIZES_ALL.map((s) => ({ size: s, qty: 0 })) };
+  }
+  const setColor = (id, patch) => setColors((cs) => cs.map((c) => c.id === id ? { ...c, ...patch } : c));
+  const setSizeQty = (id, size, qty) =>
+    setColors((cs) => cs.map((c) => c.id !== id ? c : { ...c, sizes: c.sizes.map((s) => s.size === size ? { ...s, qty: Math.max(0, parseInt(qty || 0, 10)) } : s) }));
+
+  async function upload(id, file) {
+    if (!file) return;
+    try { const data = await compressImage(file); setColor(id, { image: data }); }
+    catch { setErr("Couldn’t read that image — try another file."); }
+  }
+
+  async function save() {
+    setErr("");
+    if (!name.trim()) return setErr("Give the product a name.");
+    if (!(Number(cost) >= 0) || !(Number(price) > 0)) return setErr("Add a valid cost and selling price.");
+    if (Number(price) <= Number(cost)) return setErr("Selling price should be above cost.");
+    if (colors.some((c) => !c.name.trim())) return setErr("Name every colour.");
+    setSaving(true);
+    const product = {
+      id: "p" + uid(), name: name.trim(), category, fabric: fabric.trim(),
+      description: description.trim() || "A new Klyro piece.",
+      cost: Number(cost), price: Number(price),
+      colors: colors.map((c) => ({ name: c.name.trim(), hex: c.hex, image: c.image, sizes: c.sizes })),
+    };
+    await persistProducts([product, ...products]);
+    setSaving(false);
+    onDone();
+  }
+
+  return (
+    <div className="k-fade">
+      <h1 className="k-admin-title">Add a product</h1>
+      <div className="k-admin-card">
+        <div className="k-row2">
+          <Input label="Product name" value={name} onChange={setName} placeholder="e.g. Seraphine Slip Gown" />
+          <div className="k-field">
+            <label className="k-label">Category</label>
+            <input className="k-input" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Evening / Daywear / Bridal" />
+          </div>
+        </div>
+        <Input label="Fabric & care" value={fabric} onChange={setFabric} placeholder="e.g. 100% silk · bias-cut · dry clean" />
+        <div className="k-field">
+          <label className="k-label">Description (shown to customers)</label>
+          <textarea className="k-input k-textarea" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Tell the story of the piece…" />
+        </div>
+        <div className="k-row2">
+          <Input label={`Cost price (${CURRENCY.trim()}, admin only)`} value={cost} onChange={(v) => setCost(v.replace(/[^\d.]/g, ""))} placeholder="0" inputMode="numeric" />
+          <Input label={`Selling price (${CURRENCY.trim()})`} value={price} onChange={(v) => setPrice(v.replace(/[^\d.]/g, ""))} placeholder="0" inputMode="numeric" />
+        </div>
+        {cost && price && Number(price) > Number(cost) && (
+          <p className="k-margin-note">Margin per unit: <strong>{money(Number(price) - Number(cost))}</strong> ({Math.round(((price - cost) / price) * 100)}%)</p>
+        )}
+      </div>
+
+      <div className="k-admin-card">
+        <div className="k-color-builder-head">
+          <h3>Colours, images &amp; stock</h3>
+          <button className="k-btn k-btn-ghost k-sm" onClick={() => setColors((cs) => [...cs, blankColor()])}><Ico name="plus" size={14} /> Add colour</button>
+        </div>
+
+        {colors.map((c) => (
+          <div key={c.id} className="k-builder-color">
+            <div className="k-builder-top">
+              <label className="k-img-upload">
+                {c.image ? <img src={c.image} alt="" /> : <span className="k-img-hint"><Ico name="upload" size={16} /> Upload</span>}
+                <input type="file" accept="image/*" onChange={(e) => upload(c.id, e.target.files?.[0])} />
+              </label>
+              <div className="k-builder-fields">
+                <div className="k-row2">
+                  <Input label="Colour name" value={c.name} onChange={(v) => setColor(c.id, { name: v })} placeholder="e.g. Champagne" />
+                  <div className="k-field">
+                    <label className="k-label">Swatch</label>
+                    <div className="k-hex-row">
+                      <input type="color" className="k-color-input" value={c.hex} onChange={(e) => setColor(c.id, { hex: e.target.value })} />
+                      <input className="k-input" value={c.hex} onChange={(e) => setColor(c.id, { hex: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+                <label className="k-label">Stock per size</label>
+                <div className="k-builder-sizes">
+                  {c.sizes.map((s) => (
+                    <div key={s.size} className="k-builder-size">
+                      <span>{s.size}</span>
+                      <input className="k-input k-qty-input" value={s.qty} inputMode="numeric"
+                        onChange={(e) => setSizeQty(c.id, s.size, e.target.value)} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {colors.length > 1 && (
+                <button className="k-mini-del" onClick={() => setColors((cs) => cs.filter((x) => x.id !== c.id))}><Ico name="trash" size={15} /></button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {err && <p className="k-err k-err-block"><Ico name="alert" size={14} /> {err}</p>}
+      <div className="k-add-actions">
+        <button className="k-btn k-btn-gold" disabled={saving} onClick={save}>{saving ? "Saving…" : "Publish product"}</button>
+        <button className="k-btn k-btn-ghost" onClick={onDone}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function AdminOrders({ orders }) {
+  if (orders.length === 0)
+    return (<div className="k-fade"><h1 className="k-admin-title">Orders</h1><p className="k-empty">No orders yet. They’ll appear here as customers check out.</p></div>);
+  return (
+    <div className="k-fade">
+      <h1 className="k-admin-title">Orders</h1>
+      {orders.map((o) => (
+        <div key={o.id} className="k-admin-card k-order">
+          <div className="k-order-head">
+            <div>
+              <strong>{o.id}</strong>
+              <span className="k-order-date">{new Date(o.date).toLocaleString()}</span>
+            </div>
+            <span className="k-order-total">{money(o.total)}</span>
+          </div>
+          <div className="k-order-body">
+            <div className="k-order-items">
+              {o.items.map((i) => (
+                <p key={i.key}>{i.qty} × {i.productName} <em>· {i.colorName} · {i.size}</em> — {money(i.qty * i.price)}</p>
+              ))}
+            </div>
+            <div className="k-order-cust">
+              <Eyebrow>Ship to</Eyebrow>
+              <p><strong>{o.customer.name}</strong><br />{o.customer.address.join(", ")}<br />{o.customer.phone}</p>
+              <p className="k-order-pay">Card ending {o.payment.last4}</p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ============================ Styles ============================ */
+const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Pinyon+Script&family=Jost:wght@300;400;500&display=swap');
+
+.k-root{
+  --gold:#B79E3A; --gold-dark:#937D27; --gold-soft:#F2EDDD;
+  --paper:#FBF9F4; --white:#FFFFFF; --ink:#2A2620; --muted:#8C8472; --line:#E8E2D2;
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --script:'Pinyon Script','Snell Roundhand',cursive;
+  --sans:'Jost','Helvetica Neue',Arial,sans-serif;
+  background:var(--paper); color:var(--ink); font-family:var(--sans); font-weight:300;
+  min-height:100vh; -webkit-font-smoothing:antialiased; line-height:1.5;
+}
+.k-root *{box-sizing:border-box;}
+.k-root button{font-family:inherit; cursor:pointer; border:none; background:none; color:inherit;}
+.k-root :focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
+@media (prefers-reduced-motion:reduce){ .k-root *{animation:none!important; transition:none!important;} }
+
+.k-splash{display:flex; align-items:center; justify-content:center; min-height:100vh;}
+.k-splash-mark{width:120px; height:120px; border-radius:50%; object-fit:cover; box-shadow:0 18px 50px rgba(183,158,58,.28); animation:pulse 1.6s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.75; transform:scale(.97)}50%{opacity:1; transform:scale(1)}}
+
+.k-fade{animation:fade .5s ease both;}
+@keyframes fade{from{opacity:0; transform:translateY(10px)}to{opacity:1; transform:none}}
+
+/* Header */
+.k-header{position:sticky; top:0; z-index:40; background:rgba(251,249,244,.86); backdrop-filter:blur(10px); border-bottom:1px solid var(--line);}
+.k-header-inner{max-width:1180px; margin:0 auto; padding:14px 22px; display:grid; grid-template-columns:1fr auto 1fr; align-items:center;}
+.k-nav{display:flex; gap:26px;}
+.k-navlink{font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); position:relative; padding:4px 0;}
+.k-navlink.is-on,.k-navlink:hover{color:var(--ink);}
+.k-navlink.is-on:after{content:''; position:absolute; left:0; right:0; bottom:-2px; height:1px; background:var(--gold);}
+.k-logo{display:flex; align-items:flex-end; justify-content:center; gap:2px; color:var(--gold);}
+.k-logo-word{font-family:var(--script); font-size:40px; line-height:.8; color:var(--gold);}
+.k-logo-heart{color:var(--gold); margin-bottom:6px;}
+.k-header-right{display:flex; align-items:center; justify-content:flex-end; gap:14px;}
+.k-icon{display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:50%; color:var(--ink); transition:background .2s;}
+.k-icon:hover{background:var(--gold-soft);}
+.k-cartbtn{position:relative;}
+.k-badge{position:absolute; top:2px; right:0; background:var(--gold); color:#fff; font-family:var(--sans); font-size:10px; min-width:17px; height:17px; border-radius:9px; display:flex; align-items:center; justify-content:center; padding:0 4px;}
+.k-only-mobile{display:none;} .k-only-desk{display:flex;}
+.k-mobile-menu{display:flex; flex-direction:column; border-top:1px solid var(--line);}
+.k-mobile-menu button{text-align:left; padding:15px 22px; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); border-bottom:1px solid var(--line);}
+
+.k-main{max-width:1180px; margin:0 auto; padding:0 22px;}
+
+/* Hero */
+.k-hero{text-align:center; padding:84px 0 56px;}
+.k-eyebrow{display:inline-block; font-size:11px; letter-spacing:.32em; text-transform:uppercase; color:var(--gold-dark); margin-bottom:18px;}
+.k-hero-title{font-family:var(--serif); font-weight:500; font-size:clamp(38px,7vw,76px); line-height:1.02; letter-spacing:-.01em; margin:0 0 22px;}
+.k-hero-title em{font-style:italic; color:var(--gold-dark);}
+.k-hero-sub{max-width:520px; margin:0 auto 30px; color:var(--muted); font-size:16px;}
+
+/* Buttons */
+.k-btn{display:inline-flex; align-items:center; justify-content:center; gap:9px; padding:14px 26px; font-size:12px; letter-spacing:.16em; text-transform:uppercase; border-radius:2px; transition:.2s; font-weight:400;}
+.k-btn-gold{background:var(--gold); color:#fff;}
+.k-btn-gold:hover{background:var(--gold-dark);}
+.k-btn-gold:disabled{background:#D8CEAE; cursor:not-allowed; color:#fff;}
+.k-btn-ghost{border:1px solid var(--line); color:var(--ink); background:var(--white);}
+.k-btn-ghost:hover{border-color:var(--gold); color:var(--gold-dark);}
+.k-full{width:100%;} .k-grow{flex:1;} .k-sm{padding:9px 16px;}
+
+/* Filters */
+.k-filters{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; padding:8px 0 36px;}
+.k-chip{padding:8px 18px; border:1px solid var(--line); border-radius:40px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); background:var(--white); transition:.2s;}
+.k-chip.is-on{background:var(--ink); color:#fff; border-color:var(--ink);}
+
+/* Grid */
+.k-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:26px 22px; padding-bottom:80px;}
+.k-card{cursor:pointer; background:transparent;}
+.k-card-img{position:relative; aspect-ratio:3/4; border-radius:3px; overflow:hidden; background:var(--gold-soft);}
+.k-img{width:100%; height:100%; object-fit:cover; display:block; transition:transform .6s ease;}
+.k-ph{width:100%; height:100%; display:block;}
+.k-card:hover .k-img{transform:scale(1.04);}
+.k-card:hover .k-card-name{color:var(--gold-dark);}
+.k-sold{position:absolute; top:12px; left:12px; background:var(--white); color:var(--ink); font-size:10px; letter-spacing:.12em; text-transform:uppercase; padding:5px 10px; border-radius:2px;}
+.k-card-body{padding:14px 2px 0;}
+.k-card-cat{font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--gold-dark);}
+.k-card-name{font-family:var(--serif); font-size:21px; font-weight:500; margin:3px 0 8px; transition:color .2s;}
+.k-card-foot{display:flex; align-items:center; justify-content:space-between;}
+.k-price{font-size:14px; letter-spacing:.04em;}
+.k-dots{display:flex; gap:5px;}
+.k-dots i{width:11px; height:11px; border-radius:50%; box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);}
+.k-empty{text-align:center; color:var(--muted); padding:50px 0; font-family:var(--serif); font-size:20px; font-style:italic;}
+
+/* PDP */
+.k-back{display:inline-flex; align-items:center; gap:7px; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); padding:26px 0 16px;}
+.k-back:hover{color:var(--gold-dark);}
+.k-pdp-grid{display:grid; grid-template-columns:1.05fr 1fr; gap:52px; padding-bottom:80px;}
+.k-pdp-main{aspect-ratio:3/4; border-radius:4px; overflow:hidden; background:var(--gold-soft);}
+.k-pdp-thumbs{display:flex; gap:10px; margin-top:12px;}
+.k-thumb{width:62px; height:80px; border-radius:3px; overflow:hidden; border:1px solid var(--line); opacity:.7; transition:.2s; padding:0;}
+.k-thumb.is-on{opacity:1; border-color:var(--gold);}
+.k-pdp-info{padding-top:6px;}
+.k-pdp-name{font-family:var(--serif); font-weight:500; font-size:clamp(28px,4vw,44px); line-height:1.05; margin:6px 0 10px;}
+.k-pdp-price{font-size:19px; margin:0 0 22px; letter-spacing:.03em;}
+.k-pdp-desc{color:var(--muted); margin:0 0 28px; max-width:42ch;}
+.k-field{margin-bottom:22px;}
+.k-label{display:block; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-bottom:10px;}
+.k-label strong{color:var(--ink); font-weight:500; letter-spacing:.04em;}
+.k-swatches{display:flex; gap:12px;}
+.k-swatch{width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:1px solid transparent; transition:.2s; padding:0;}
+.k-swatch i{width:24px; height:24px; border-radius:50%; box-shadow:inset 0 0 0 1px rgba(0,0,0,.1);}
+.k-swatch.is-on{border-color:var(--gold);}
+.k-sizes{display:flex; gap:9px; flex-wrap:wrap;}
+.k-size{min-width:48px; padding:11px 8px; border:1px solid var(--line); border-radius:2px; font-size:13px; letter-spacing:.06em; background:var(--white); transition:.2s;}
+.k-size:hover:not(:disabled){border-color:var(--gold);}
+.k-size.is-on{background:var(--ink); color:#fff; border-color:var(--ink);}
+.k-size.is-out{opacity:.4; cursor:not-allowed; text-decoration:line-through;}
+.k-lowstock{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--gold-dark); margin:11px 0 0;}
+.k-buyrow{display:flex; gap:12px; margin:8px 0 30px;}
+.k-stepper{display:flex; align-items:center; border:1px solid var(--line); border-radius:2px; background:var(--white);}
+.k-stepper button{width:42px; height:48px; display:flex; align-items:center; justify-content:center; color:var(--ink);}
+.k-stepper span{min-width:34px; text-align:center; font-size:14px;}
+.k-stepper-sm button{width:30px; height:30px;} .k-stepper-sm span{min-width:26px; font-size:13px;}
+.k-spec{border-top:1px solid var(--line); padding-top:20px;}
+.k-spec p{color:var(--muted); margin:8px 0 0; font-size:14px;}
+
+/* Drawer */
+.k-overlay{position:fixed; inset:0; background:rgba(42,38,32,.4); opacity:0; visibility:hidden; transition:.3s; z-index:50;}
+.k-overlay.is-on{opacity:1; visibility:visible;}
+.k-drawer{position:fixed; top:0; right:0; height:100%; width:420px; max-width:92vw; background:var(--paper); z-index:60; transform:translateX(100%); transition:transform .35s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; box-shadow:-20px 0 60px rgba(0,0,0,.12);}
+.k-drawer.is-on{transform:none;}
+.k-drawer-head{display:flex; align-items:center; justify-content:space-between; padding:22px; border-bottom:1px solid var(--line);}
+.k-drawer-head h2{font-family:var(--serif); font-weight:500; font-size:24px; margin:0;}
+.k-drawer-empty{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; color:var(--muted); padding:30px;}
+.k-drawer-items{flex:1; overflow-y:auto; padding:8px 22px;}
+.k-line{display:flex; gap:14px; padding:18px 0; border-bottom:1px solid var(--line); position:relative;}
+.k-line-img{width:74px; height:96px; border-radius:3px; overflow:hidden; flex-shrink:0; background:var(--gold-soft);}
+.k-line-info{flex:1; min-width:0;}
+.k-line-info h4{font-family:var(--serif); font-size:18px; font-weight:500; margin:0 0 3px;}
+.k-line-meta{font-size:12px; color:var(--muted); margin:0 0 12px;}
+.k-line-bottom{display:flex; align-items:center; justify-content:space-between;}
+.k-line-price{font-size:14px;}
+.k-line-rm{position:absolute; top:18px; right:0; color:var(--muted);}
+.k-line-rm:hover{color:#9c4a2f;}
+.k-drawer-foot{padding:20px 22px; border-top:1px solid var(--line);}
+.k-subtotal{display:flex; justify-content:space-between; font-size:16px; margin-bottom:6px;}
+.k-ship-note{font-size:12px; color:var(--muted); margin:0 0 16px;}
+
+/* Checkout */
+.k-checkout{padding-bottom:80px;}
+.k-page-title{font-family:var(--serif); font-weight:500; font-size:clamp(30px,5vw,46px); margin:6px 0 30px;}
+.k-checkout-grid{display:grid; grid-template-columns:1.4fr 1fr; gap:40px; align-items:start;}
+.k-panel{background:var(--white); border:1px solid var(--line); border-radius:4px; padding:28px; margin-bottom:22px;}
+.k-panel .k-eyebrow{margin-bottom:20px;}
+.k-input{width:100%; padding:13px 14px; border:1px solid var(--line); border-radius:2px; background:var(--white); font-family:var(--sans); font-size:14px; color:var(--ink); transition:.2s;}
+.k-input::placeholder{color:#B9B3A4;}
+.k-input:focus{outline:none; border-color:var(--gold);}
+.k-input.is-err{border-color:#C2562F;}
+.k-textarea{resize:vertical;}
+.k-row2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+.k-err{display:flex; align-items:center; gap:5px; color:#C2562F; font-size:12px; margin-top:6px;}
+.k-err-block{margin:0 0 14px;}
+.k-demo-note{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--gold-dark); background:var(--gold-soft); padding:10px 12px; border-radius:3px; margin:0 0 18px;}
+.k-summary{background:var(--white); border:1px solid var(--line); border-radius:4px; padding:26px; position:sticky; top:90px;}
+.k-summary h3{font-family:var(--serif); font-weight:500; font-size:22px; margin:0 0 18px;}
+.k-sum-items{display:flex; flex-direction:column; gap:14px; margin-bottom:18px;}
+.k-sum-line{display:grid; grid-template-columns:auto 1fr auto auto; align-items:center; gap:12px;}
+.k-sum-img{position:relative; width:48px; height:62px; border-radius:3px; overflow:hidden; background:var(--gold-soft);}
+.k-sum-qty{position:absolute; top:-7px; right:-7px; background:var(--ink); color:#fff; width:19px; height:19px; border-radius:50%; font-size:10px; display:flex; align-items:center; justify-content:center;}
+.k-sum-name{font-family:var(--serif); font-size:15px; margin:0;}
+.k-sum-meta{font-size:11px; color:var(--muted); margin:2px 0 0;}
+.k-sum-rm{color:var(--muted);} .k-sum-rm:hover{color:#C2562F;}
+.k-sum-price{font-size:13px; white-space:nowrap;}
+.k-sum-totals{border-top:1px solid var(--line); padding-top:16px; margin-bottom:20px; display:flex; flex-direction:column; gap:9px;}
+.k-sum-totals>div{display:flex; justify-content:space-between; font-size:14px; color:var(--muted);}
+.k-sum-grand{color:var(--ink)!important; font-size:18px!important; font-weight:400; padding-top:9px; border-top:1px solid var(--line);}
+.k-checkout-empty{text-align:center; padding:90px 0;}
+.k-checkout-empty .k-pdp-name{margin-bottom:24px;}
+
+/* Confirm */
+.k-confirm{text-align:center; max-width:560px; margin:0 auto; padding:70px 0 90px;}
+.k-confirm-mark{width:72px; height:72px; border-radius:50%; background:var(--gold-soft); color:var(--gold-dark); display:flex; align-items:center; justify-content:center; margin:0 auto 22px;}
+.k-confirm-sub{color:var(--muted); margin:0 auto 30px; max-width:42ch;}
+.k-confirm-card{background:var(--white); border:1px solid var(--line); border-radius:4px; padding:26px; text-align:left; margin-bottom:30px;}
+.k-confirm-rows{display:flex; flex-direction:column; gap:10px; padding-bottom:18px; border-bottom:1px solid var(--line);}
+.k-confirm-line{display:flex; justify-content:space-between; font-size:14px; gap:14px;}
+.k-confirm-line em{color:var(--muted); font-style:normal;}
+.k-confirm-ship{padding-top:18px;} .k-confirm-ship p{margin:8px 0 0; font-size:14px; line-height:1.7;}
+
+/* Login */
+.k-login{display:flex; align-items:center; justify-content:center; padding:70px 0 90px;}
+.k-login-card{background:var(--white); border:1px solid var(--line); border-radius:5px; padding:42px 36px; width:100%; max-width:400px; text-align:center;}
+.k-login-ico{color:var(--gold); margin-bottom:14px;}
+.k-login-title{font-family:var(--serif); font-weight:500; font-size:30px; margin:6px 0 4px;}
+.k-login-sub{color:var(--muted); font-size:14px; margin:0 0 24px;}
+.k-login-card .k-input{margin-bottom:14px; text-align:center;}
+.k-login-card .k-btn{margin-bottom:10px;}
+.k-login-hint{font-size:12px; color:var(--muted); margin:14px 0 0;}
+.k-login-hint code{background:var(--gold-soft); padding:2px 7px; border-radius:3px; color:var(--gold-dark);}
+
+/* Admin */
+.k-admin{display:grid; grid-template-columns:230px 1fr; min-height:calc(100vh - 0px); max-width:1280px; margin:0 auto;}
+.k-admin-side{border-right:1px solid var(--line); padding:26px 18px; display:flex; flex-direction:column; background:var(--white); position:sticky; top:0; height:100vh;}
+.k-admin-brand{margin-bottom:30px; padding:0 8px;}
+.k-admin-brand .k-logo-word{font-size:34px; display:block; line-height:.9;}
+.k-admin-brand small{font-size:10px; letter-spacing:.28em; text-transform:uppercase; color:var(--muted);}
+.k-admin-side nav{display:flex; flex-direction:column; gap:4px;}
+.k-admin-side nav button{display:flex; align-items:center; gap:11px; padding:12px 14px; border-radius:4px; font-size:13px; color:var(--muted); text-align:left; transition:.18s;}
+.k-admin-side nav button:hover{background:var(--gold-soft); color:var(--ink);}
+.k-admin-side nav button.is-on{background:var(--ink); color:#fff;}
+.k-admin-exit{margin-top:auto; font-size:12px; letter-spacing:.1em; color:var(--muted); padding:12px 14px; text-align:left;}
+.k-admin-exit:hover{color:var(--gold-dark);}
+.k-admin-main{padding:34px 38px;}
+.k-admin-title{font-family:var(--serif); font-weight:500; font-size:34px; margin:0 0 26px;}
+.k-kpis{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:26px;}
+.k-kpi{background:var(--white); border:1px solid var(--line); border-radius:5px; padding:20px; display:flex; align-items:center; gap:15px;}
+.k-kpi-accent{background:linear-gradient(135deg,#fff, var(--gold-soft));}
+.k-kpi-ico{width:42px; height:42px; border-radius:9px; background:var(--gold-soft); color:var(--gold-dark); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+.k-kpi-label{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin:0 0 4px;}
+.k-kpi-value{font-family:var(--serif); font-size:26px; font-weight:500; margin:0;}
+.k-admin-card{background:var(--white); border:1px solid var(--line); border-radius:6px; padding:24px; margin-bottom:20px;}
+.k-admin-card h3{font-family:var(--serif); font-weight:500; font-size:21px; margin:0 0 18px;}
+.k-table{width:100%; border-collapse:collapse; font-size:14px;}
+.k-table th{text-align:left; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); font-weight:400; padding:0 14px 12px; border-bottom:1px solid var(--line);}
+.k-table td{padding:14px; border-bottom:1px solid var(--line);}
+.k-table tr:last-child td{border-bottom:none;}
+.k-pill{background:var(--gold-soft); color:var(--gold-dark); padding:3px 10px; border-radius:20px; font-size:12px;}
+.k-pos{color:#3f7d4f;}
+
+.k-prod-card{padding:20px 24px;}
+.k-prod-head{display:flex; align-items:center; gap:16px; padding-bottom:16px; border-bottom:1px solid var(--line); margin-bottom:14px;}
+.k-prod-thumb{width:54px; height:70px; border-radius:4px; overflow:hidden; background:var(--gold-soft); flex-shrink:0;}
+.k-prod-meta{flex:1;} .k-prod-meta h3{margin:0 0 3px; font-size:20px;}
+.k-prod-sub{font-size:12px; color:var(--muted); margin:0;}
+.k-mini-del{width:34px; height:34px; border-radius:6px; color:var(--muted); display:flex; align-items:center; justify-content:center; border:1px solid var(--line);}
+.k-mini-del:hover{color:#C2562F; border-color:#e0bdae;}
+.k-color-row{display:flex; align-items:center; gap:18px; padding:10px 0;}
+.k-color-tag{display:flex; align-items:center; gap:8px; font-size:13px; min-width:120px;}
+.k-color-tag i{width:15px; height:15px; border-radius:50%; box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);}
+.k-stock-grid{display:flex; gap:10px; flex-wrap:wrap;}
+.k-stock-cell{border:1px solid var(--line); border-radius:5px; padding:6px 8px; text-align:center; min-width:62px;}
+.k-stock-cell.is-low{border-color:var(--gold); background:var(--gold-soft);}
+.k-stock-cell.is-zero{opacity:.55;}
+.k-stock-size{display:block; font-size:11px; letter-spacing:.1em; color:var(--muted); margin-bottom:3px;}
+.k-stock-ctrl{display:flex; align-items:center; justify-content:center; gap:4px;}
+.k-stock-ctrl button{width:22px; height:22px; border-radius:4px; background:var(--paper); display:flex; align-items:center; justify-content:center;}
+.k-stock-ctrl button:hover{background:var(--gold-soft);}
+.k-stock-qty{min-width:22px; font-size:14px;}
+
+.k-color-builder-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;}
+.k-color-builder-head h3{margin:0;}
+.k-builder-color{border:1px solid var(--line); border-radius:6px; padding:18px; margin-bottom:14px; background:var(--paper);}
+.k-builder-top{display:flex; gap:18px; align-items:flex-start;}
+.k-img-upload{width:96px; height:124px; border:1px dashed var(--line); border-radius:5px; overflow:hidden; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; background:var(--white); position:relative;}
+.k-img-upload img{width:100%; height:100%; object-fit:cover;}
+.k-img-upload input{position:absolute; inset:0; opacity:0; cursor:pointer;}
+.k-img-hint{display:flex; flex-direction:column; align-items:center; gap:6px; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);}
+.k-builder-fields{flex:1;}
+.k-hex-row{display:flex; gap:8px; align-items:center;}
+.k-color-input{width:46px; height:44px; border:1px solid var(--line); border-radius:3px; padding:3px; background:var(--white); cursor:pointer;}
+.k-builder-sizes{display:flex; gap:10px; flex-wrap:wrap; margin-top:8px;}
+.k-builder-size{text-align:center;}
+.k-builder-size span{display:block; font-size:11px; color:var(--muted); margin-bottom:4px;}
+.k-qty-input{width:58px; text-align:center; padding:8px;}
+.k-margin-note{font-size:13px; color:var(--gold-dark); margin:4px 0 0;}
+.k-add-actions{display:flex; gap:12px;}
+
+.k-order-head{display:flex; align-items:center; justify-content:space-between; padding-bottom:14px; border-bottom:1px solid var(--line); margin-bottom:14px;}
+.k-order-date{font-size:12px; color:var(--muted); margin-left:12px;}
+.k-order-total{font-family:var(--serif); font-size:20px;}
+.k-order-body{display:grid; grid-template-columns:1.5fr 1fr; gap:24px;}
+.k-order-items p{font-size:14px; margin:0 0 7px;} .k-order-items em{color:var(--muted); font-style:normal;}
+.k-order-cust p{font-size:14px; line-height:1.7; margin:8px 0 0;}
+.k-order-pay{color:var(--muted); font-size:13px!important;}
+
+/* Footer */
+.k-footer{text-align:center; padding:60px 22px 50px; border-top:1px solid var(--line); margin-top:30px;}
+.k-foot-seal{width:64px; height:64px; border-radius:50%; object-fit:cover; margin-bottom:16px; box-shadow:0 8px 24px rgba(183,158,58,.22);}
+.k-foot-tag{font-family:var(--serif); font-style:italic; font-size:18px; color:var(--ink); margin:0 0 14px;}
+.k-foot-links{display:flex; gap:10px; justify-content:center; align-items:center; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);}
+.k-foot-links button:hover{color:var(--gold-dark);}
+.k-foot-fine{font-size:11px; color:#B9B3A4; margin:18px 0 0; letter-spacing:.05em;}
+
+/* Responsive */
+@media (max-width:1024px){
+  .k-grid{grid-template-columns:repeat(3,1fr);}
+  .k-kpis{grid-template-columns:repeat(2,1fr);}
+}
+@media (max-width:860px){
+  .k-only-mobile{display:inline-flex;} .k-only-desk{display:none;}
+  .k-header-inner{grid-template-columns:1fr auto 1fr;}
+  .k-pdp-grid{grid-template-columns:1fr; gap:28px;}
+  .k-checkout-grid{grid-template-columns:1fr; gap:24px;}
+  .k-summary{position:static;}
+  .k-order-body{grid-template-columns:1fr; gap:16px;}
+  .k-admin{grid-template-columns:1fr;}
+  .k-admin-side{position:static; height:auto; flex-direction:row; flex-wrap:wrap; align-items:center; gap:10px; padding:14px;}
+  .k-admin-brand{margin:0 12px 0 4px;} .k-admin-brand .k-logo-word{font-size:26px;}
+  .k-admin-side nav{flex-direction:row; flex-wrap:wrap; flex:1;}
+  .k-admin-side nav button{padding:9px 12px;}
+  .k-admin-exit{margin:0;}
+  .k-admin-main{padding:24px 18px;}
+}
+@media (max-width:560px){
+  .k-grid{grid-template-columns:repeat(2,1fr); gap:18px 14px;}
+  .k-hero{padding:50px 0 36px;}
+  .k-row2{grid-template-columns:1fr;}
+  .k-kpis{grid-template-columns:1fr 1fr;}
+  .k-builder-top{flex-wrap:wrap;}
+  .k-card-name{font-size:18px;}
+  .k-table{font-size:12px;} .k-table th,.k-table td{padding:9px 8px;}
+  .k-logo-word{font-size:34px;}
+  .k-admin-side nav button span{display:inline;}
+}
+`;
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+
+  </script>
+</body>
+</html>
