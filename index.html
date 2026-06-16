@@ -6,6 +6,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&family=Pinyon+Script&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
 <style>
   :root{
@@ -104,6 +105,10 @@
   .color-pick.active .dot{outline-color:var(--gold)}
   .color-pick .cn{font-size:10px;letter-spacing:.08em;color:var(--muted)}
   .sizes{display:flex;gap:10px;flex-wrap:wrap}
+  .size-col{display:flex;flex-direction:column;align-items:center;gap:5px}
+  .size-cap{font-size:10.5px;letter-spacing:.03em;text-align:center}
+  .size-cap .cap-low{color:var(--bad)}
+  .size-cap .cap-out{color:var(--muted)}
   .size{min-width:50px;padding:11px 8px;text-align:center;border:1px solid var(--line);font-size:13px;letter-spacing:.1em;cursor:pointer;transition:.2s;background:#fff}
   .size:hover:not(.disabled){border-color:var(--ink)}
   .size.active{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -306,6 +311,23 @@ const SUPA_URL = "https://dxfjvhdfxhvusvvzgaxw.supabase.co";
 const SUPA_KEY = "sb_publishable_2nRHGy8UL1muL0j6dQBtQw_eE-SBa84";
 const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 
+/* ---- EmailJS (sends welcome + password-reset emails) ---- */
+const EMAIL = {
+  serviceId: "service_0gxj2pf",
+  welcomeTemplate: "template_5j5k02t",
+  resetTemplate: "template_axz2w19",
+  publicKey: "q3_FAatHyaeVEYs-Z"
+};
+try{ if(window.emailjs) emailjs.init({publicKey:EMAIL.publicKey}); }catch(e){console.error("EmailJS init",e);}
+async function sendEmail(templateId,params){
+  try{ await emailjs.send(EMAIL.serviceId, templateId, params); return true; }
+  catch(e){ console.error("Email send failed",e); return false; }
+}
+function sendWelcome(user){
+  if(!window.emailjs) return;
+  sendEmail(EMAIL.welcomeTemplate,{name:user.firstName||user.name,email:user.email});
+}
+
 const SIZES=["XS","S","M","L","XL"];
 const fmt=n=>CONFIG.currency+" "+Number(n||0).toLocaleString("en-US");
 const uid=()=>Math.random().toString(36).slice(2,9);
@@ -314,6 +336,7 @@ const uid=()=>Math.random().toString(36).slice(2,9);
 let db={products:[],orders:[],users:[],staff:[]};
 let session={role:"guest",id:null};
 let cart=[];
+let resetState=null;
 
 /* ---- password hashing (SHA-256, so raw passwords aren't stored) ---- */
 async function hashPw(pw){
@@ -420,7 +443,7 @@ function go(name,opts={}){
 }
 function render(){
   ({store:renderStore,product:renderProduct,checkout:renderCheckout,confirm:renderConfirm,
-    auth:renderAuth,account:renderAccount,admin:renderAdmin}[view.name]||renderStore)();
+    auth:renderAuth,reset:renderReset,account:renderAccount,admin:renderAdmin}[view.name]||renderStore)();
 }
 function renderAcct(){
   const el=document.getElementById("acct");
@@ -449,7 +472,7 @@ function renderStore(){
       <div class="rule"></div></section>
     <div class="wrap">
       <div class="section-head"><div><div class="eyebrow">${q?"Search":"The Collection"}</div><h2>${q?"Results for &ldquo;"+escapeHtml(searchInput.value.trim())+"&rdquo;":"Dresses"}</h2></div>
-        <div class="muted" style="font-size:13px">${shown.length} ${q?"match":"style"}${shown.length===1?"":"es"}</div></div>
+        <div class="muted" style="font-size:13px">${shown.length} ${q?("match"+(shown.length===1?"":"es")):("style"+(shown.length===1?"":"s"))}</div></div>
       <div class="grid" id="grid"></div></div>`;
   const grid=document.getElementById("grid");
   if(!shown.length){grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="script">${q?"Nothing found":"Coming soon"}</div>
@@ -505,17 +528,20 @@ function renderProduct(){
     el.innerHTML=`<span class="dot" style="background:${col.hex}"></span><span class="cn">${escapeHtml(col.name)}</span>`;
     el.onclick=()=>{view.color=i;view.size=null;view.img=0;renderProduct();};cwrap.appendChild(el);});
   const swrap=document.getElementById("sizes");
-  SIZES.forEach(sz=>{const n=Number(c.stock?.[sz])||0;const el=document.createElement("div");
+  SIZES.forEach(sz=>{const n=Number(c.stock?.[sz])||0;
+    const colw=document.createElement("div");colw.className="size-col";
+    const el=document.createElement("div");
     el.className="size"+(n<=0?" disabled":"")+(view.size===sz?" active":"");el.textContent=sz;
-    if(n>0)el.onclick=()=>{view.size=sz;renderProduct();};swrap.appendChild(el);});
+    if(n>0)el.onclick=()=>{view.size=sz;renderProduct();};
+    colw.appendChild(el);
+    let cap="";
+    if(n<=0)cap=`<span class="cap-out">Sold out</span>`;
+    else if(isAdmin()||n<=CONFIG.lowStock)cap=`<span class="cap-low">${n} left</span>`;
+    if(cap){const cc=document.createElement("div");cc.className="size-cap";cc.innerHTML=cap;colw.appendChild(cc);}
+    swrap.appendChild(colw);});
   const sl=document.getElementById("stockline");
-  const SNAME={XS:"Extra Small",S:"Small",M:"Medium",L:"Large",XL:"Extra Large"};
-  const av=document.getElementById("sizeAvail");
-  const lowNotes=SIZES.map(s=>{const n=Number(c.stock?.[s])||0;return (n>0&&n<=CONFIG.lowStock)?`Only ${n} left in ${SNAME[s]}`:null;}).filter(Boolean);
-  av.innerHTML=lowNotes.map(t=>`<div class="av-line">${t}</div>`).join("");
-  if(view.size){const n=Number(c.stock?.[view.size])||0;
-    sl.innerHTML=n<=0?`<span style="color:var(--bad)">Sold out in this size</span>`:(n<=CONFIG.lowStock?`Only <b>${n}</b> left in ${escapeHtml(c.name)} · ${view.size}`:`In stock · ${escapeHtml(c.name)} · ${view.size}`);}
-  else sl.innerHTML=`<span class="muted">Select your size</span>`;
+  document.getElementById("sizeAvail").innerHTML="";
+  sl.innerHTML=view.size?"":`<span class="muted">Select your size</span>`;
   document.getElementById("qMinus").onclick=()=>{view.qty=Math.max(1,view.qty-1);document.getElementById("qVal").textContent=view.qty;};
   document.getElementById("qPlus").onclick=()=>{const max=view.size?(Number(c.stock?.[view.size])||0):99;view.qty=Math.min(max||1,view.qty+1);document.getElementById("qVal").textContent=view.qty;};
   document.getElementById("addCart").onclick=()=>{if(addToCart(p,c))openCart();};
@@ -599,12 +625,15 @@ function renderAuth(){
     b.innerHTML=`<div class="field"><label>Email</label><input id="li_email" type="email" placeholder="you@email.com"></div>
       <div class="field"><label>Password</label><input id="li_pass" type="password" placeholder="Your password"></div>
       <button class="btn gold" style="width:100%" id="doSignin">Sign in</button>
-      <p class="note" style="text-align:center;margin-top:16px">New to Klyro? <span class="link" id="toReg">Create an account</span></p>`;
+      <p class="note" style="text-align:center;margin-top:16px">New to Klyro? <span class="link" id="toReg">Create an account</span></p>
+      <p class="note" style="text-align:center;margin-top:4px"><span class="link" id="toReset">Forgot password?</span></p>`;
     document.getElementById("toReg").onclick=()=>{view.tab="register";renderAuth();};
+    document.getElementById("toReset").onclick=()=>go("reset",{step:1});
     const fn=()=>customerSignin(val("li_email"),val("li_pass"));
     document.getElementById("doSignin").onclick=fn;document.getElementById("li_pass").onkeydown=e=>{if(e.key==="Enter")fn();};
   }else{
-    b.innerHTML=`<div class="field"><label>Full name</label><input id="r_name" placeholder="Your name"></div>
+    b.innerHTML=`<div class="two"><div class="field"><label>First name</label><input id="r_name" placeholder="First name"></div>
+      <div class="field"><label>Last name</label><input id="r_lname" placeholder="Last name"></div></div>
       <div class="field"><label>Email</label><input id="r_email" type="email" placeholder="you@email.com"></div>
       <div class="field"><label>Phone number</label><input id="r_phone" placeholder="+94 7X XXX XXXX" inputmode="tel"></div>
       <div class="field"><label>WhatsApp number <span style="text-transform:none;letter-spacing:0;color:var(--gold-deep)">(optional)</span></label><input id="r_whatsapp" placeholder="+94 7X XXX XXXX" inputmode="tel"></div>
@@ -619,8 +648,10 @@ function renderAuth(){
 const val=id=>document.getElementById(id).value.trim();
 const emailOk=e=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 async function customerRegister(){
-  const name=val("r_name"),email=val("r_email").toLowerCase(),phone=val("r_phone"),whatsapp=val("r_whatsapp"),pass=val("r_pass"),pass2=val("r_pass2");
-  if(!name){toast("Enter your name");return;}
+  const firstName=val("r_name"),lastName=val("r_lname"),email=val("r_email").toLowerCase(),phone=val("r_phone"),whatsapp=val("r_whatsapp"),pass=val("r_pass"),pass2=val("r_pass2");
+  const name=(firstName+" "+lastName).trim();
+  if(!firstName){toast("Enter your first name");return;}
+  if(!lastName){toast("Enter your last name");return;}
   if(!emailOk(email)){toast("Enter a valid email");return;}
   if(!phone){toast("Enter your phone number");return;}
   if(pass.length<6){toast("Password must be 6+ characters");return;}
@@ -629,9 +660,9 @@ async function customerRegister(){
   if(db.users.some(u=>u.email.toLowerCase()===email)){toast("An account with this email already exists");return;}
   const btn=document.getElementById("doReg");btn.disabled=true;btn.textContent="Creating…";
   try{
-    const user={id:uid(),name,email,phone,whatsapp,password:await hashPw(pass),address:{a1:"",a2:"",a3:""},createdAt:new Date().toISOString()};
+    const user={id:uid(),name,firstName,lastName,email,phone,whatsapp,password:await hashPw(pass),address:{a1:"",a2:"",a3:""},createdAt:new Date().toISOString()};
     await saveCustomer(user);db.users.push(user);
-    session={role:"customer",id:user.id};sesSave();toast("Welcome to Klyro");afterLogin();
+    session={role:"customer",id:user.id};sesSave();sendWelcome(user);toast("Welcome to Klyro");afterLogin();
   }catch(e){console.error(e);toast("Couldn't create account — check your connection");btn.disabled=false;btn.textContent="Create account";}
 }
 async function customerSignin(email,pass){
@@ -648,9 +679,69 @@ async function customerSignin(email,pass){
   // Customer
   const u=db.users.find(u=>u.email.toLowerCase()===email);
   if(!u||!(await pwMatches(pass,u.password))){toast("Incorrect email or password");return;}
-  session={role:"customer",id:u.id};sesSave();toast("Signed in");afterLogin();
+  session={role:"customer",id:u.id};sesSave();sendWelcome(u);toast("Signed in");afterLogin();
 }
 function afterLogin(){renderAcct();if(view.redirect==="checkout"&&cart.length)go("checkout");else go("store");}
+
+/* ---- forgot password: email a code, then set a new password ---- */
+function renderReset(){
+  const step=view.step||1;
+  app.innerHTML=`
+    <div class="auth"><div class="auth-head"><div class="brand" style="cursor:default;font-size:34px">Klyr<span style="letter-spacing:-2px">o</span><span class="hh">♥</span></div>
+      <div class="form-sub" style="text-align:center">Reset your password</div></div>
+      <div id="resetBody"></div>
+      <p class="note" style="text-align:center;margin-top:16px"><span class="link" id="backToLogin">Back to sign in</span></p></div>`;
+  document.getElementById("backToLogin").onclick=()=>go("auth");
+  const b=document.getElementById("resetBody");
+  if(step===1){
+    b.innerHTML=`<div class="field"><label>Your account email</label><input id="rs_email" type="email" placeholder="you@email.com"></div>
+      <button class="btn gold" style="width:100%" id="sendCode">Email me a code</button>
+      <div class="note">We'll email a 6-digit code to reset your password.</div>`;
+    const fn=()=>sendResetCode();document.getElementById("sendCode").onclick=fn;
+    document.getElementById("rs_email").onkeydown=e=>{if(e.key==="Enter")fn();};
+  }else{
+    b.innerHTML=`<div class="note" style="margin:0 0 14px">We sent a code to <b>${escapeHtml(resetState?resetState.email:"")}</b>. Enter it below with your new password.</div>
+      <div class="field"><label>Reset code</label><input id="rs_code" inputmode="numeric" placeholder="6-digit code"></div>
+      <div class="field"><label>New password</label><input id="rs_p1" type="password" placeholder="At least 6 characters"></div>
+      <div class="field"><label>Confirm new password</label><input id="rs_p2" type="password" placeholder="Re-enter password"></div>
+      <button class="btn gold" style="width:100%" id="doReset">Set new password</button>
+      <p class="note" style="text-align:center;margin-top:10px">Didn't get it? <span class="link" id="resend">Resend code</span></p>`;
+    document.getElementById("doReset").onclick=doReset;
+    document.getElementById("resend").onclick=()=>sendResetCode();
+  }
+}
+async function sendResetCode(){
+  const email=(view.step===2&&resetState?resetState.email:val("rs_email")).toLowerCase();
+  if(!emailOk(email)){toast("Enter a valid email");return;}
+  const u=db.users.find(x=>x.email.toLowerCase()===email);
+  const ed=db.staff.find(s=>s.email.toLowerCase()===email);
+  const acct=u||ed;
+  if(!acct){toast("No account found with that email");return;}
+  if(!window.emailjs){toast("Email service unavailable right now");return;}
+  const btn=document.getElementById("sendCode")||document.getElementById("resend");
+  if(btn){btn.disabled=true;btn.textContent="Sending…";}
+  const code=""+Math.floor(100000+Math.random()*900000);
+  const ok=await sendEmail(EMAIL.resetTemplate,{name:acct.firstName||acct.name,email:acct.email,code});
+  if(!ok){toast("Couldn't send the email — try again");if(btn){btn.disabled=false;btn.textContent="Email me a code";}return;}
+  resetState={email,code,expires:Date.now()+15*60*1000,kind:u?"customer":"editor",id:acct.id};
+  toast("Code sent — check your email");
+  go("reset",{step:2});
+}
+async function doReset(){
+  if(!resetState){go("reset",{step:1});return;}
+  const code=val("rs_code"),p1=val("rs_p1"),p2=val("rs_p2");
+  if(Date.now()>resetState.expires){toast("Code expired — request a new one");return;}
+  if(code!==resetState.code){toast("Incorrect code");return;}
+  if(p1.length<6){toast("Password must be 6+ characters");return;}
+  if(p1!==p2){toast("Passwords don't match");return;}
+  const btn=document.getElementById("doReset");btn.disabled=true;btn.textContent="Updating…";
+  try{
+    const hashed=await hashPw(p1);
+    if(resetState.kind==="customer"){const a=db.users.find(x=>x.id===resetState.id);a.password=hashed;await saveCustomer(a);}
+    else{const a=db.staff.find(s=>s.id===resetState.id);a.password=hashed;await saveStaff(a);}
+    resetState=null;toast("Password updated — please sign in");go("auth");
+  }catch(e){console.error(e);toast("Update failed — try again");btn.disabled=false;btn.textContent="Set new password";}
+}
 
 /* ============================================================
    ACCOUNT
