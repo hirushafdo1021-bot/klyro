@@ -1,1392 +1,939 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Klyro — Quiet luxury dresses</title>
-  <meta name="description" content="Klyro — quietly luxurious dresses, made to be lived in." />
+<!-- Klyro — luxury womenswear. Connected to Supabase (shared cloud database). -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Klyro — Elegant Womenswear</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&family=Pinyon+Script&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- ===== FAVICON (the Chrome-tab icon) ===== -->
-  <!-- This embedded gold "K" mark needs no extra file. -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23b79e3a'/><text x='32' y='46' font-family='Georgia,serif' font-size='40' font-weight='700' fill='white' text-anchor='middle'>K</text></svg>" />
-  <!-- To use your OWN icon file instead, drop a square PNG next to this file
-       and replace the line above with:
-       <link rel="icon" type="image/png" href="klyro-icon.png" />
-       <link rel="apple-touch-icon" href="klyro-icon.png" />               -->
-  <!-- ========================================= -->
+<style>
+  :root{
+    --ink:#211f18;--gold:#b79e3a;--gold-deep:#937e29;--gold-soft:#e9e1c4;
+    --cream:#faf8f2;--paper:#ffffff;--line:#ece6d6;--muted:#8d8773;
+    --ok:#3f7d52;--bad:#b4543e;--shadow:0 18px 50px -28px rgba(60,52,20,.35);
+    --display:"Cormorant Garamond",Georgia,serif;--body:"Jost",system-ui,-apple-system,sans-serif;
+    --script:"Pinyon Script","Cormorant Garamond",cursive;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:var(--body);color:var(--ink);background:var(--cream);font-weight:300;line-height:1.55;-webkit-font-smoothing:antialiased;letter-spacing:.2px}
+  img{max-width:100%;display:block}
+  button{font-family:var(--body);cursor:pointer;border:none;background:none;color:inherit}
+  input,textarea,select{font-family:var(--body);font-weight:300}
+  a{color:inherit;text-decoration:none}
+  .eyebrow{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold-deep);font-weight:500}
+  .muted{color:var(--muted)}
+  h1,h2,h3{font-family:var(--display);font-weight:500;letter-spacing:.3px;margin:0}
+  .hidden{display:none!important}
 
-  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
-  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.28.4/babel.min.js"></script>
-  <style>html,body{margin:0;padding:0;background:#FBF9F4;}</style>
-</head>
-<body>
-  <div id="root"></div>
-  <script type="text/babel" data-presets="react">
-const { useState, useEffect, useMemo } = React;
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;padding:14px 30px;font-size:13px;letter-spacing:.18em;text-transform:uppercase;font-weight:400;border:1px solid var(--ink);background:var(--ink);color:#fff;transition:.25s;border-radius:2px}
+  .btn:hover{background:var(--gold-deep);border-color:var(--gold-deep)}
+  .btn.ghost{background:transparent;color:var(--ink)}
+  .btn.ghost:hover{background:var(--ink);color:#fff}
+  .btn.gold{background:var(--gold);border-color:var(--gold)}
+  .btn.gold:hover{background:var(--gold-deep);border-color:var(--gold-deep)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.sm{padding:9px 18px;font-size:11px}
+  .link{cursor:pointer;color:var(--gold-deep);border-bottom:1px solid transparent}
+  .link:hover{border-color:var(--gold)}
 
-const ICONS = {
-  bag: (<g><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></g>),
-  plus: (<g><path d="M12 5v14"/><path d="M5 12h14"/></g>),
-  minus: (<g><path d="M5 12h14"/></g>),
-  trash: (<g><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></g>),
-  x: (<g><path d="M18 6 6 18"/><path d="M6 6l12 12"/></g>),
-  menu: (<g><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></g>),
-  heart: (<g><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></g>),
-  lock: (<g><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></g>),
-  upload: (<g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></g>),
-  check: (<g><path d="M20 6 9 17l-5-5"/></g>),
-  arrowRight: (<g><path d="M5 12h14"/><path d="M13 5l7 7-7 7"/></g>),
-  arrowLeft: (<g><path d="M19 12H5"/><path d="M11 5l-7 7 7 7"/></g>),
-  trendingUp: (<g><path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/></g>),
-  box: (<g><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></g>),
-  receipt: (<g><path d="M5 2v20l2.5-1.5L10 22l2-1.5 2 1.5 2.5-1.5L19 22V2l-2.5 1.5L14 2l-2 1.5L10 2 7.5 3.5 5 2Z"/><path d="M8 8h8"/><path d="M8 12h8"/></g>),
-  dashboard: (<g><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></g>),
-  alert: (<g><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></g>),
-  chevronRight: (<g><path d="M9 18l6-6-6-6"/></g>),
+  header{position:sticky;top:0;z-index:40;background:rgba(250,248,242,.88);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .bar{max-width:1240px;margin:0 auto;padding:0 26px;height:74px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px}
+  .navL,.navR{display:flex;align-items:center;gap:24px}
+  .navR{justify-content:flex-end}
+  .nav-link{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);padding:4px 0;position:relative;cursor:pointer}
+  .nav-link::after{content:"";position:absolute;left:0;bottom:-2px;height:1px;width:0;background:var(--gold);transition:.25s}
+  .nav-link:hover::after,.nav-link.active::after{width:100%}
+  .brand{font-family:var(--script);font-size:40px;line-height:1;color:var(--gold);text-align:center;display:inline-flex;align-items:flex-start;cursor:pointer}
+  .brand .hh{font-size:14px;margin-left:2px;margin-top:6px;color:var(--gold)}
+  .cart-btn{position:relative;display:flex;align-items:center;gap:7px;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+  .cart-count{position:absolute;top:-8px;right:-12px;background:var(--gold);color:#fff;font-size:10px;min-width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:500}
+  .icon{width:19px;height:19px;stroke:var(--ink);fill:none;stroke-width:1.4}
+  .acct{font-size:12px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:8px}
+  .acct .nm{color:var(--ink)}
+  .searchbar{position:fixed;top:0;left:0;right:0;z-index:50;background:var(--paper);border-bottom:1px solid var(--gold-soft);transform:translateY(-100%);transition:transform .3s cubic-bezier(.4,0,.1,1);box-shadow:var(--shadow)}
+  .searchbar.on{transform:translateY(0)}
+  .searchbar-inner{max-width:1240px;margin:0 auto;padding:0 26px;height:74px;display:flex;align-items:center;gap:14px}
+  .searchbar-inner input{flex:1;border:none;background:none;font-size:22px;font-family:var(--display);color:var(--ink);outline:none}
+  .searchbar-inner input::placeholder{color:var(--muted);font-style:italic}
+  @media(max-width:640px){.searchbar-inner{height:62px;padding:0 16px}.searchbar-inner input{font-size:18px}}
+
+  .hero{max-width:1240px;margin:0 auto;padding:64px 26px 40px;text-align:center}
+  .hero .brand-xl{font-family:var(--script);font-size:clamp(64px,12vw,128px);color:var(--gold);line-height:.9}
+  .hero h1{font-size:clamp(30px,5vw,52px);font-weight:400;margin:14px 0 0;line-height:1.08}
+  .hero h1 em{font-style:italic;color:var(--gold-deep)}
+  .hero p{max-width:520px;margin:18px auto 0;color:var(--muted);font-size:16px}
+  .rule{width:54px;height:1px;background:var(--gold);margin:26px auto 0}
+
+  .wrap{max-width:1240px;margin:0 auto;padding:0 26px 90px}
+  .section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:46px 0 28px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+  .section-head h2{font-size:30px;font-weight:400}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:30px 26px}
+  .card{background:var(--paper);border:1px solid var(--line);transition:.3s;cursor:pointer;overflow:hidden}
+  .card:hover{box-shadow:var(--shadow);transform:translateY(-3px);border-color:var(--gold-soft)}
+  .card .ph{aspect-ratio:3/4;background:linear-gradient(135deg,#f3efe3,#e9e2cf);overflow:hidden;position:relative}
+  .card .ph img{width:100%;height:100%;object-fit:cover;transition:.5s}
+  .card:hover .ph img{transform:scale(1.05)}
+  .tag{position:absolute;top:12px;left:12px;background:#fff;color:var(--gold-deep);font-size:10px;letter-spacing:.18em;text-transform:uppercase;padding:5px 11px;font-weight:500}
+  .tag.soldout{background:var(--ink);color:#fff}
+  .card .meta{padding:16px 16px 20px}
+  .card .meta .nm{font-family:var(--display);font-size:21px;font-weight:500}
+  .card .meta .fab{font-size:12px;color:var(--muted);letter-spacing:.05em;margin-top:2px}
+  .card .meta .pr{margin-top:9px;font-size:15px;letter-spacing:.06em}
+  .swatch-row{display:flex;gap:6px;margin-top:11px}
+  .sw{width:15px;height:15px;border-radius:50%;border:1px solid rgba(0,0,0,.12)}
+
+  .pd{display:grid;grid-template-columns:1.05fr .95fr;gap:54px;padding-top:30px}
+  .gallery .main{aspect-ratio:3/4;background:#f1ece0;overflow:hidden;border:1px solid var(--line)}
+  .gallery .main img{width:100%;height:100%;object-fit:cover}
+  .thumbs{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .thumb{width:62px;height:80px;object-fit:cover;border:1px solid var(--line);cursor:pointer;opacity:.6;transition:.2s}
+  .thumb.active{opacity:1;border-color:var(--gold)}
+  .pd .info{padding-top:6px}
+  .pd .info h1{font-size:40px;font-weight:400;line-height:1.05}
+  .pd .price{font-size:23px;margin:14px 0;letter-spacing:.06em}
+  .pd .desc{color:#55513f;font-size:15.5px;line-height:1.7;margin:18px 0;font-weight:300}
+  .spec{display:flex;gap:30px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:16px 0;margin:20px 0}
+  .spec div .k{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+  .spec div .v{font-family:var(--display);font-size:18px;margin-top:3px}
+  .opt-label{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-deep);margin:22px 0 11px;font-weight:500}
+  .colors{display:flex;gap:12px;flex-wrap:wrap}
+  .color-pick{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+  .color-pick .dot{width:30px;height:30px;border-radius:50%;border:1px solid rgba(0,0,0,.15);outline:2px solid transparent;outline-offset:3px;transition:.2s}
+  .color-pick.active .dot{outline-color:var(--gold)}
+  .color-pick .cn{font-size:10px;letter-spacing:.08em;color:var(--muted)}
+  .sizes{display:flex;gap:10px;flex-wrap:wrap}
+  .size{min-width:50px;padding:11px 8px;text-align:center;border:1px solid var(--line);font-size:13px;letter-spacing:.1em;cursor:pointer;transition:.2s;background:#fff}
+  .size:hover:not(.disabled){border-color:var(--ink)}
+  .size.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .size.disabled{opacity:.32;cursor:not-allowed;text-decoration:line-through}
+  .stockline{font-size:12px;color:var(--muted);margin-top:10px;letter-spacing:.04em}
+  .stockline b{color:var(--gold-deep);font-weight:500}
+  .qty{display:flex;align-items:center;border:1px solid var(--line);width:fit-content;margin:18px 0 4px}
+  .qty button{width:42px;height:44px;font-size:18px}
+  .qty span{width:46px;text-align:center;font-size:15px}
+  .back{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:6px 0;cursor:pointer}
+  .back:hover{color:var(--gold-deep)}
+
+  .overlay{position:fixed;inset:0;background:rgba(33,31,24,.4);z-index:60;opacity:0;pointer-events:none;transition:.3s}
+  .overlay.on{opacity:1;pointer-events:auto}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:420px;max-width:92vw;background:var(--cream);z-index:70;transform:translateX(100%);transition:.35s cubic-bezier(.4,0,.1,1);display:flex;flex-direction:column}
+  .drawer.on{transform:translateX(0)}
+  .drawer .dh{display:flex;align-items:center;justify-content:space-between;padding:24px 26px;border-bottom:1px solid var(--line)}
+  .drawer .dh h3{font-size:24px;font-weight:500}
+  .x{font-size:24px;line-height:1;width:32px;height:32px;color:var(--muted)}
+  .x:hover{color:var(--ink)}
+  .cart-items{flex:1;overflow:auto;padding:10px 26px}
+  .ci{display:grid;grid-template-columns:74px 1fr auto;gap:14px;padding:18px 0;border-bottom:1px solid var(--line)}
+  .ci img{width:74px;height:96px;object-fit:cover;background:#eee}
+  .ci .nm{font-family:var(--display);font-size:18px}
+  .ci .vr{font-size:12px;color:var(--muted);margin-top:2px;letter-spacing:.04em}
+  .ci .pr{margin-top:8px;font-size:13px}
+  .ci .qmini{display:flex;align-items:center;border:1px solid var(--line);width:fit-content;margin-top:8px}
+  .ci .qmini button{width:26px;height:26px;font-size:14px}
+  .ci .qmini span{width:30px;text-align:center;font-size:12px}
+  .ci .rm{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-top:8px;cursor:pointer}
+  .ci .rm:hover{color:var(--bad)}
+  .cart-foot{padding:22px 26px;border-top:1px solid var(--line);background:var(--paper)}
+  .cart-foot .tot{font-family:var(--display);font-size:24px;margin:6px 0 16px;display:flex;justify-content:space-between;align-items:baseline}
+  .empty{text-align:center;color:var(--muted);padding:60px 20px}
+  .empty .script{font-family:var(--script);font-size:54px;color:var(--gold-soft);line-height:1}
+
+  .checkout{display:grid;grid-template-columns:1.2fr .8fr;gap:48px;padding-top:30px;align-items:start}
+  .panel{background:var(--paper);border:1px solid var(--line);padding:30px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+  .field input,.field textarea,.field select{width:100%;padding:13px 14px;border:1px solid var(--line);background:#fff;font-size:14.5px;color:var(--ink);transition:.2s;border-radius:2px}
+  .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--gold)}
+  .field.err input,.field.err textarea{border-color:var(--bad)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .form-title{font-size:24px;font-weight:500;margin-bottom:4px}
+  .form-sub{font-size:13px;color:var(--muted);margin-bottom:22px}
+  .summary .si{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+  .summary .si .qn{color:var(--muted)}
+  .note{font-size:11.5px;color:var(--muted);margin-top:14px;line-height:1.55}
+  .card-badge{display:flex;gap:8px;margin-top:6px}
+  .card-badge span{font-size:9px;letter-spacing:.1em;border:1px solid var(--line);padding:3px 7px;color:var(--muted);border-radius:3px}
+
+  .auth{max-width:430px;margin:50px auto;background:var(--paper);border:1px solid var(--line);padding:38px}
+  .auth .tabs2{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:24px}
+  .auth .tab2{flex:1;text-align:center;padding:12px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer}
+  .auth .tab2.active{color:var(--ink);border-color:var(--gold)}
+  .auth-head{text-align:center;margin-bottom:6px}
+
+  .confirm{max-width:560px;margin:60px auto;text-align:center;background:var(--paper);border:1px solid var(--line);padding:54px 40px}
+  .confirm .ck{width:60px;height:60px;border-radius:50%;background:var(--gold-soft);display:flex;align-items:center;justify-content:center;margin:0 auto 22px}
+  .confirm h1{font-size:36px;font-weight:400}
+  .confirm .ordno{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-deep);margin:8px 0 18px}
+
+  .admin-wrap{max-width:1240px;margin:0 auto;padding:30px 26px 90px}
+  .admin-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:6px;flex-wrap:wrap}
+  .admin-top h1{font-size:34px;font-weight:400}
+  .role-badge{font-size:10px;letter-spacing:.18em;text-transform:uppercase;padding:4px 10px;border-radius:20px;background:var(--gold-soft);color:var(--gold-deep);margin-left:10px;vertical-align:middle}
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:22px 0 30px;flex-wrap:wrap}
+  .tab{padding:12px 20px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;transition:.2s}
+  .tab:hover{color:var(--ink)}
+  .tab.active{color:var(--ink);border-color:var(--gold)}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px;margin-bottom:14px}
+  .kpi{background:var(--paper);border:1px solid var(--line);padding:24px}
+  .kpi .k{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+  .kpi .v{font-family:var(--display);font-size:36px;font-weight:500;margin-top:8px;letter-spacing:.5px}
+  .kpi .v.gold{color:var(--gold-deep)}
+  .kpi .sub{font-size:11.5px;color:var(--muted);margin-top:4px}
+  table{width:100%;border-collapse:collapse;background:var(--paper);border:1px solid var(--line)}
+  th,td{text-align:left;padding:14px 16px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle}
+  th{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:500;background:#fcfaf4}
+  tr:last-child td{border-bottom:none}
+  .pill{display:inline-block;font-size:11px;padding:3px 9px;border-radius:20px;letter-spacing:.05em}
+  .pill.ok{background:#eaf2ec;color:var(--ok)}
+  .pill.low{background:#fcf2ec;color:var(--bad)}
+  .pill.out{background:#f0eee6;color:var(--muted)}
+  .pill.unp{background:#fbf4e2;color:var(--gold-deep)}
+  .stk-grid{display:flex;flex-wrap:wrap;gap:5px}
+  .stk-grid .c{font-size:11px;border:1px solid var(--line);padding:2px 7px;border-radius:3px;color:var(--muted)}
+  .stk-grid .c b{color:var(--ink);font-weight:500}
+  .mini-sw{display:inline-block;width:11px;height:11px;border-radius:50%;border:1px solid rgba(0,0,0,.15);vertical-align:-1px;margin-right:5px}
+  .prod-admin-img{width:46px;height:60px;object-fit:cover;background:#eee;border:1px solid var(--line)}
+  .row-actions{display:flex;gap:8px}
+  .ico-btn{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid transparent;cursor:pointer}
+  .ico-btn:hover{color:var(--gold-deep);border-color:var(--gold)}
+  .ico-btn.del:hover{color:var(--bad);border-color:var(--bad)}
+
+  .pform{background:var(--paper);border:1px solid var(--line);padding:30px;margin-top:6px}
+  .color-block{border:1px solid var(--line);padding:18px;margin-bottom:16px;background:#fcfaf4;position:relative}
+  .color-block .cbh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .color-block .cbh strong{font-family:var(--display);font-size:18px;font-weight:500}
+  .img-drop{aspect-ratio:3/4;max-width:140px;border:1px dashed var(--gold-soft);background:#fff;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;overflow:hidden;color:var(--muted);font-size:11px;padding:10px}
+  .img-drop img{width:100%;height:100%;object-fit:cover}
+  .size-stock{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}
+  .size-stock label{font-size:11px;letter-spacing:.1em;color:var(--muted);text-align:center;display:block;margin-bottom:5px}
+  .size-stock input{text-align:center;padding:9px 4px}
+  .color-cfg{display:grid;grid-template-columns:1fr 56px;gap:10px;align-items:end}
+  .color-cfg input[type=color]{height:42px;padding:3px;cursor:pointer}
+  .locked-note{background:#fbf4e2;border:1px solid var(--gold-soft);padding:12px 14px;font-size:12px;color:var(--gold-deep);margin-bottom:18px;border-radius:3px}
+  .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:14px 26px;font-size:13px;letter-spacing:.08em;z-index:90;opacity:0;transition:.3s;border-radius:3px;max-width:90vw;text-align:center}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  .loader{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;color:var(--muted);gap:14px}
+  .loader .script{font-family:var(--script);font-size:56px;color:var(--gold)}
+  .spin{width:26px;height:26px;border:2px solid var(--gold-soft);border-top-color:var(--gold);border-radius:50%;animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  footer{border-top:1px solid var(--line);background:var(--paper);margin-top:40px}
+  .foot{max-width:1240px;margin:0 auto;padding:46px 26px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px}
+  .foot .brand{font-size:32px}
+  .foot .muted{font-size:12px;letter-spacing:.1em}
+
+  @media(max-width:880px){.pd{grid-template-columns:1fr;gap:30px}.checkout{grid-template-columns:1fr;gap:26px}.pd .info h1{font-size:32px}}
+  @media(max-width:640px){
+    .bar{height:62px;padding:0 16px;gap:8px}.navL{display:none}.brand{font-size:30px}
+    .navR{gap:16px}.acct .nm{max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .hero{padding:40px 18px 24px}.wrap{padding:0 16px 70px}
+    .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:20px 14px}
+    .card .meta .nm{font-size:18px}.panel,.auth{padding:22px}
+    .section-head h2{font-size:24px}.size-stock{grid-template-columns:repeat(3,1fr)}
+    .kpi .v{font-size:30px}.admin-wrap{padding-left:16px;padding-right:16px}.two{grid-template-columns:1fr}
+  }
+</style>
+
+<header>
+  <div class="bar">
+    <nav class="navL">
+      <a class="nav-link active" data-nav="store">Boutique</a>
+      <a class="nav-link" data-nav="store">New In</a>
+    </nav>
+    <div class="brand" data-nav="store">Klyr<span style="letter-spacing:-2px">o</span><span class="hh">♥</span></div>
+    <nav class="navR">
+      <span id="acct" class="acct"></span>
+      <button class="cart-btn" id="searchOpen" title="Search" aria-label="Search">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.2-4.2"/></svg>
+      </button>
+      <button class="cart-btn" id="cartOpen">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M6 7h12l-1 13H7L6 7z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg>
+        <span class="cart-count hidden" id="cartCount">0</span>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<div class="searchbar" id="searchbar">
+  <div class="searchbar-inner">
+    <svg class="icon" viewBox="0 0 24 24" style="stroke:var(--gold-deep)"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.2-4.2"/></svg>
+    <input id="searchInput" placeholder="Search dresses, fabrics, colours…" autocomplete="off">
+    <button class="x" id="searchClose">×</button>
+  </div>
+</div>
+
+<main id="app"></main>
+
+<footer>
+  <div class="foot">
+    <div class="brand">Klyr<span style="letter-spacing:-2px">o</span><span class="hh" style="font-size:13px">♥</span></div>
+    <div class="muted">Elegant womenswear · Crafted in limited runs · © 2026 Klyro</div>
+  </div>
+</footer>
+
+<div class="overlay" id="overlay"></div>
+<aside class="drawer" id="drawer">
+  <div class="dh"><h3>Your Cart</h3><button class="x" id="cartClose">×</button></div>
+  <div class="cart-items" id="cartItems"></div>
+  <div class="cart-foot" id="cartFoot"></div>
+</aside>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   KLYRO — config
+   ============================================================ */
+const CONFIG = {
+  currency: "Rs.",
+  admin: { name:"Hirusha", email:"hirushafdo1021@gmail.com", password:"Hiru@1021" },
+  editorDefault: { name:"Page Editor", email:"editor@klyro.com", password:"editor@1234" },
+  lowStock: 3
 };
+/* ---- Supabase (shared cloud database) ---- */
+const SUPA_URL = "https://dxfjvhdfxhvusvvzgaxw.supabase.co";
+const SUPA_KEY = "sb_publishable_2nRHGy8UL1muL0j6dQBtQw_eE-SBa84";
+const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 
-function Ico({ name, size = 18, className, fill = "none" }) {
-  return (
-    <svg className={className} width={size} height={size} viewBox="0 0 24 24"
-      fill={fill} stroke="currentColor" strokeWidth="1.7"
-      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {ICONS[name]}
-    </svg>
-  );
+const SIZES=["XS","S","M","L","XL"];
+const fmt=n=>CONFIG.currency+" "+Number(n||0).toLocaleString("en-US");
+const uid=()=>Math.random().toString(36).slice(2,9);
+
+/* in-memory cache of the cloud data */
+let db={products:[],orders:[],users:[],staff:[]};
+let session={role:"guest",id:null};
+let cart=[];
+
+/* ---- password hashing (SHA-256, so raw passwords aren't stored) ---- */
+async function hashPw(pw){
+  try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(pw));
+    return "h:"+Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,"0")).join("");}
+  catch(e){return "p:"+pw;}
+}
+async function pwMatches(input,stored){
+  if(!stored) return false;
+  if(stored.startsWith("h:")) return (await hashPw(input))===stored;
+  if(stored.startsWith("p:")) return ("p:"+input)===stored;
+  return input===stored; // legacy plain
 }
 
-/* ============================ Brand asset ============================ */
-const LOGO = "data:image/jpeg;base64,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";
+/* ---- session persistence (localStorage on live site; memory fallback) ---- */
+function sesSave(){try{localStorage.setItem("klyro:ses",JSON.stringify(session));}catch(e){}}
+function sesLoad(){try{const s=localStorage.getItem("klyro:ses");if(s)session=JSON.parse(s);}catch(e){}}
 
-/* ============================ Config ============================ */
-const CURRENCY = "Rs ";                 // change to "$ " / "€ " etc.
-const ADMIN_PASSWORD = "klyro2026";     // demo gate — change before sharing
-const LOW_STOCK = 3;
-const SIZES_ALL = ["XS", "S", "M", "L", "XL"];
-
-/* ============================ Helpers ============================ */
-const money = (n) =>
-  CURRENCY + Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 0 });
-
-async function storeGet(key, fallback) {
-  try {
-    const v = localStorage.getItem(key);
-    return v ? JSON.parse(v) : fallback;
-  } catch {
-    return fallback;
+/* ============================================================
+   CLOUD DATA LAYER (Supabase)
+   ============================================================ */
+async function loadAll(){
+  const [p,c,o,s]=await Promise.all([
+    sb.from("products").select("data"),
+    sb.from("customers").select("data"),
+    sb.from("orders").select("data"),
+    sb.from("staff").select("data")
+  ]);
+  if(p.error||c.error||o.error||s.error){
+    console.error("Supabase load error:",p.error||c.error||o.error||s.error);
+    throw (p.error||c.error||o.error||s.error);
+  }
+  db.products=(p.data||[]).map(r=>r.data);
+  db.users=(c.data||[]).map(r=>r.data);
+  db.orders=(o.data||[]).map(r=>r.data).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  db.staff=(s.data||[]).map(r=>r.data);
+  if(!db.staff.length){
+    const ed={id:uid(),name:CONFIG.editorDefault.name,email:CONFIG.editorDefault.email,
+      password:await hashPw(CONFIG.editorDefault.password),role:"editor"};
+    db.staff=[ed]; await saveStaff(ed);
   }
 }
-async function storeSet(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (e) {
-    console.error("storage error", e);
-  }
+async function saveProduct(p){const r=await sb.from("products").upsert({id:p.id,data:p});if(r.error)throw r.error;}
+async function deleteProductRow(id){const r=await sb.from("products").delete().eq("id",id);if(r.error)throw r.error;}
+async function saveCustomer(u){const r=await sb.from("customers").upsert({id:u.id,data:u});if(r.error)throw r.error;}
+async function saveOrder(o){const r=await sb.from("orders").upsert({id:o.id,data:o});if(r.error)throw r.error;}
+async function saveStaff(s){const r=await sb.from("staff").upsert({id:s.id,data:s});if(r.error)throw r.error;}
+async function deleteStaffRow(id){const r=await sb.from("staff").delete().eq("id",id);if(r.error)throw r.error;}
+
+/* ---------- image compression ---------- */
+function compressImage(file,max=640,quality=0.72){
+  return new Promise((res,rej)=>{const fr=new FileReader();
+    fr.onload=()=>{const img=new Image();img.onload=()=>{
+      let{width:w,height:h}=img;
+      if(w>h&&w>max){h=h*max/w;w=max;}else if(h>=w&&h>max){w=w*max/h;h=max;}
+      const c=document.createElement("canvas");c.width=w;c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);res(c.toDataURL("image/jpeg",quality));
+    };img.onerror=rej;img.src=fr.result;};fr.onerror=rej;fr.readAsDataURL(file);});
+}
+function ph(hex){const h=hex||"#d8cfa8";return "data:image/svg+xml;utf8,"+encodeURIComponent(
+  `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='${h}' stop-opacity='.85'/><stop offset='1' stop-color='${h}' stop-opacity='.4'/></linearGradient></defs><rect width='300' height='400' fill='${h}' opacity='.18'/><rect width='300' height='400' fill='url(%23g)' opacity='.5'/><text x='150' y='205' font-family='Cormorant Garamond,serif' font-size='34' fill='%23ffffff' opacity='.8' text-anchor='middle'>Klyro</text></svg>`);}
+const imgOf=c=>(c.image&&c.image.length>40)?c.image:ph(c.hex);
+
+/* ---------- stock & roles ---------- */
+const colorStock=c=>SIZES.reduce((t,s)=>t+(Number(c.stock?.[s])||0),0);
+const productStock=p=>p.colors.reduce((t,c)=>t+colorStock(c),0);
+const isPriced=p=>Number(p.price)>0;
+const buyable=p=>isPriced(p)&&productStock(p)>0;
+const isAdmin=()=>session.role==="admin";
+const isEditor=()=>session.role==="editor";
+const isStaff=()=>isAdmin()||isEditor();
+const currentUser=()=>session.role==="customer"?db.users.find(u=>u.id===session.id):null;
+
+/* ============================================================
+   router
+   ============================================================ */
+const app=document.getElementById("app");
+let view={name:"store"};
+function go(name,opts={}){
+  view=Object.assign({name},opts);
+  document.querySelectorAll("[data-nav]").forEach(n=>n.classList.toggle("active",n.dataset.nav===name));
+  window.scrollTo({top:0,behavior:"instant"});
+  renderAcct();render();
+}
+function render(){
+  ({store:renderStore,product:renderProduct,checkout:renderCheckout,confirm:renderConfirm,
+    auth:renderAuth,account:renderAccount,admin:renderAdmin}[view.name]||renderStore)();
+}
+function renderAcct(){
+  const el=document.getElementById("acct");
+  if(session.role==="customer"){const u=currentUser();
+    el.innerHTML=`<span class="nm" id="acctName">${escapeHtml(u?u.name.split(" ")[0]:"Account")}</span><span style="color:var(--line)">|</span><span id="acctOut" class="link" style="text-transform:uppercase;font-size:12px">Sign out</span>`;
+    document.getElementById("acctName").onclick=()=>go("account");document.getElementById("acctOut").onclick=signOut;
+  }else if(isStaff()){
+    el.innerHTML=`<span class="nm" id="acctName">${isAdmin()?"Admin":"Editor"}</span><span style="color:var(--line)">|</span><span id="acctOut" class="link" style="text-transform:uppercase;font-size:12px">Sign out</span>`;
+    document.getElementById("acctName").onclick=()=>go("admin");document.getElementById("acctOut").onclick=signOut;
+  }else{el.innerHTML=`<span class="nav-link" id="acctIn">Sign in</span>`;document.getElementById("acctIn").onclick=()=>go("auth");}
+}
+function signOut(){session={role:"guest",id:null};sesSave();toast("Signed out");go("store");}
+
+/* ============================================================
+   STORE
+   ============================================================ */
+function renderStore(){
+  let shown=db.products.filter(buyable).concat(db.products.filter(p=>isPriced(p)&&productStock(p)<=0));
+  const q=searchQuery;
+  if(q){shown=shown.filter(p=>(p.name+" "+p.fabric+" "+(p.desc||"")+" "+p.colors.map(c=>c.name).join(" ")).toLowerCase().includes(q));}
+  app.innerHTML=`
+    <section class="hero"><div class="brand-xl">Klyro</div>
+      <h1>Dresses made to be <em>remembered</em></h1>
+      <p>Limited-run womenswear in considered fabrics. Each piece cut in small numbers — when it's gone, it's gone.</p>
+      <div class="rule"></div></section>
+    <div class="wrap">
+      <div class="section-head"><div><div class="eyebrow">${q?"Search":"The Collection"}</div><h2>${q?"Results for &ldquo;"+escapeHtml(searchInput.value.trim())+"&rdquo;":"Dresses"}</h2></div>
+        <div class="muted" style="font-size:13px">${shown.length} ${q?"match":"style"}${shown.length===1?"":"es"}</div></div>
+      <div class="grid" id="grid"></div></div>`;
+  const grid=document.getElementById("grid");
+  if(!shown.length){grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="script">${q?"Nothing found":"Coming soon"}</div>
+      <p>${q?"No pieces match your search. Try a different word.":"The first Klyro collection is being prepared.<br>"+(isStaff()?"Add pieces from the Admin console.":"Please check back shortly.")}</p></div>`;return;}
+  shown.forEach(p=>{const stock=productStock(p),cover=imgOf(p.colors[0]);
+    const card=document.createElement("div");card.className="card";
+    card.innerHTML=`<div class="ph">${stock<=0?'<span class="tag soldout">Sold out</span>':(stock<=CONFIG.lowStock?'<span class="tag">Low stock</span>':`<span class="tag">${escapeHtml(p.fabric)}</span>`)}
+        <img src="${cover}" alt="${escapeHtml(p.name)}"></div>
+      <div class="meta"><div class="nm">${escapeHtml(p.name)}</div><div class="fab">${escapeHtml(p.fabric)}</div>
+        <div class="pr">${fmt(p.price)}</div>
+        <div class="swatch-row">${p.colors.map(c=>`<span class="sw" style="background:${c.hex}"></span>`).join("")}</div></div>`;
+    card.onclick=()=>go("product",{id:p.id,color:0,size:null,qty:1});grid.appendChild(card);});
 }
 
-// Downscale + compress an uploaded image to a base64 JPEG (keeps storage small)
-function compressImage(file, max = 900, quality = 0.82) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("read failed"));
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        let { width: w, height: h } = img;
-        if (w > h && w > max) { h = Math.round((h * max) / w); w = max; }
-        else if (h >= w && h > max) { w = Math.round((w * max) / h); h = max; }
-        const c = document.createElement("canvas");
-        c.width = w; c.height = h;
-        c.getContext("2d").drawImage(img, 0, 0, w, h);
-        resolve(c.toDataURL("image/jpeg", quality));
-      };
-      img.onerror = () => reject(new Error("decode failed"));
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
+/* ============================================================
+   PRODUCT
+   ============================================================ */
+function renderProduct(){
+  const p=db.products.find(x=>x.id===view.id);if(!p){go("store");return;}
+  if(view.color==null)view.color=0;if(view.qty==null)view.qty=1;
+  const c=p.colors[view.color]||p.colors[0];
+  app.innerHTML=`
+    <div class="wrap" style="padding-top:24px"><div class="back" id="back">← Back to collection</div>
+      <div class="pd"><div class="gallery"><div class="main"><img id="mainImg" src="${imgOf(c)}" alt="${escapeHtml(p.name)}"></div>
+          <div class="thumbs" id="thumbs"></div></div>
+        <div class="info"><div class="eyebrow">Klyro · ${escapeHtml(p.fabric)}</div>
+          <h1>${escapeHtml(p.name)}</h1><div class="price">${fmt(p.price)}</div>
+          <p class="desc">${escapeHtml(p.desc||"")}</p>
+          <div class="spec"><div><div class="k">Fabric</div><div class="v">${escapeHtml(p.fabric)}</div></div>
+            <div><div class="k">Fit</div><div class="v">True to size</div></div></div>
+          <div class="opt-label">Colour — <span id="cName">${escapeHtml(c.name)}</span></div>
+          <div class="colors" id="colors"></div>
+          <div class="opt-label">Size</div><div class="sizes" id="sizes"></div>
+          <div class="stockline" id="stockline"></div>
+          <div class="opt-label">Quantity</div>
+          <div class="qty"><button id="qMinus">−</button><span id="qVal">${view.qty}</span><button id="qPlus">+</button></div>
+          <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap">
+            <button class="btn gold" id="addCart">Add to cart</button>
+            <button class="btn ghost" id="buyNow">Buy it now</button></div>
+        </div></div></div>`;
+  document.getElementById("back").onclick=()=>go("store");
+  const thumbs=document.getElementById("thumbs");
+  p.colors.forEach((col,i)=>{const t=document.createElement("img");t.className="thumb"+(i===view.color?" active":"");
+    t.src=imgOf(col);t.title=col.name;t.onclick=()=>{view.color=i;view.size=null;renderProduct();};thumbs.appendChild(t);});
+  const cwrap=document.getElementById("colors");
+  p.colors.forEach((col,i)=>{const el=document.createElement("div");el.className="color-pick"+(i===view.color?" active":"");
+    el.innerHTML=`<span class="dot" style="background:${col.hex}"></span><span class="cn">${escapeHtml(col.name)}</span>`;
+    el.onclick=()=>{view.color=i;view.size=null;renderProduct();};cwrap.appendChild(el);});
+  const swrap=document.getElementById("sizes");
+  SIZES.forEach(sz=>{const n=Number(c.stock?.[sz])||0;const el=document.createElement("div");
+    el.className="size"+(n<=0?" disabled":"")+(view.size===sz?" active":"");el.textContent=sz;
+    if(n>0)el.onclick=()=>{view.size=sz;renderProduct();};swrap.appendChild(el);});
+  const sl=document.getElementById("stockline");
+  if(view.size){const n=Number(c.stock?.[view.size])||0;
+    sl.innerHTML=n<=CONFIG.lowStock?`Only <b>${n}</b> left in ${escapeHtml(c.name)} · ${view.size}`:`<b>${n}</b> in stock · ${escapeHtml(c.name)} · ${view.size}`;}
+  else sl.innerHTML=`<span class="muted">Select a size — ${colorStock(c)} available in ${escapeHtml(c.name)}</span>`;
+  document.getElementById("qMinus").onclick=()=>{view.qty=Math.max(1,view.qty-1);document.getElementById("qVal").textContent=view.qty;};
+  document.getElementById("qPlus").onclick=()=>{const max=view.size?(Number(c.stock?.[view.size])||0):99;view.qty=Math.min(max||1,view.qty+1);document.getElementById("qVal").textContent=view.qty;};
+  document.getElementById("addCart").onclick=()=>{if(addToCart(p,c))openCart();};
+  document.getElementById("buyNow").onclick=()=>{if(addToCart(p,c))proceedCheckout();};
 }
 
-const uid = () => Math.random().toString(36).slice(2, 9);
+/* ============================================================
+   CART
+   ============================================================ */
+function addToCart(p,c){
+  if(!view.size){toast("Please select a size");return false;}
+  const avail=Number(c.stock?.[view.size])||0;
+  if(avail<=0){toast("That size is sold out");return false;}
+  const key=p.id+"|"+c.id+"|"+view.size;const ex=cart.find(i=>i.key===key);const already=ex?ex.qty:0;
+  if(already+view.qty>avail){toast(`Only ${avail} available`);return false;}
+  if(ex)ex.qty+=view.qty;
+  else cart.push({key,productId:p.id,name:p.name,colorId:c.id,colorName:c.name,hex:c.hex,image:imgOf(c),size:view.size,qty:view.qty,price:p.price});
+  updateCartCount();toast("Added to cart");return true;
+}
+const cartTotal=()=>cart.reduce((t,i)=>t+i.price*i.qty,0);
+function updateCartCount(){const n=cart.reduce((t,i)=>t+i.qty,0);const el=document.getElementById("cartCount");
+  el.textContent=n;el.classList.toggle("hidden",n===0);renderCart();}
+function renderCart(){
+  const wrap=document.getElementById("cartItems"),foot=document.getElementById("cartFoot");
+  if(!cart.length){wrap.innerHTML=`<div class="empty"><div class="script">It's empty</div><p>Your cart is waiting. Find something you love.</p></div>`;
+    foot.innerHTML=`<button class="btn ghost" style="width:100%" id="keepShop">Continue shopping</button>`;
+    document.getElementById("keepShop").onclick=closeCart;return;}
+  wrap.innerHTML="";
+  cart.forEach(i=>{const stk=stockFor(i.productId,i.colorId,i.size);const el=document.createElement("div");el.className="ci";
+    el.innerHTML=`<img src="${i.image}"><div><div class="nm">${escapeHtml(i.name)}</div>
+      <div class="vr"><span class="mini-sw" style="background:${i.hex}"></span>${escapeHtml(i.colorName)} · Size ${i.size}</div>
+      <div class="pr">${fmt(i.price)}</div>
+      <div class="qmini"><button data-a="d">−</button><span>${i.qty}</span><button data-a="i">+</button></div>
+      <div class="rm" data-a="r">Remove</div></div>
+      <div style="text-align:right;font-size:14px">${fmt(i.price*i.qty)}</div>`;
+    el.querySelector('[data-a=d]').onclick=()=>{i.qty=Math.max(1,i.qty-1);updateCartCount();};
+    el.querySelector('[data-a=i]').onclick=()=>{if(i.qty<stk){i.qty++;updateCartCount();}else toast(`Only ${stk} in stock`);};
+    el.querySelector('[data-a=r]').onclick=()=>{cart=cart.filter(x=>x!==i);updateCartCount();};wrap.appendChild(el);});
+  foot.innerHTML=`<div class="tot"><span>Total</span><span>${fmt(cartTotal())}</span></div>
+    <button class="btn gold" style="width:100%" id="goCheckout">Checkout</button>
+    <div class="note">Shipping calculated at delivery. Limited stock held for 15 minutes.</div>`;
+  document.getElementById("goCheckout").onclick=()=>{closeCart();proceedCheckout();};
+}
+function stockFor(pid,cid,sz){const p=db.products.find(x=>x.id===pid);if(!p)return 0;const c=p.colors.find(x=>x.id===cid);if(!c)return 0;return Number(c.stock?.[sz])||0;}
+const overlay=document.getElementById("overlay"),drawer=document.getElementById("drawer");
+function openCart(){overlay.classList.add("on");drawer.classList.add("on");renderCart();}
+function closeCart(){overlay.classList.remove("on");drawer.classList.remove("on");}
+document.getElementById("cartOpen").onclick=openCart;
+document.getElementById("cartClose").onclick=closeCart;
+overlay.onclick=closeCart;
 
-/* ============================ Seed catalogue ============================ */
-const SEED = [
-  {
-    id: "p1", name: "Seraphine Slip Gown", category: "Evening",
-    fabric: "100% Mulberry silk · bias-cut · concealed back zip",
-    description:
-      "A whisper-light bias gown that pours over the body. The cowl neck and fluid hem move with you — made for long evenings and slow exits.",
-    cost: 4200, price: 11900,
-    colors: [
-      { name: "Champagne", hex: "#E7D9B0", image: null, sizes: stock([2, 5, 6, 4, 2]) },
-      { name: "Midnight", hex: "#23262E", image: null, sizes: stock([1, 4, 5, 3, 2]) },
-      { name: "Rosewood", hex: "#7E4A4A", image: null, sizes: stock([0, 3, 4, 2, 1]) },
-    ],
-  },
-  {
-    id: "p2", name: "Aria Midi Dress", category: "Daywear",
-    fabric: "Italian crêpe · lined bodice · side seam pockets",
-    description:
-      "Structured shoulders ease into a softly gathered skirt. An everyday piece with evening manners — desk to dinner without a second thought.",
-    cost: 2600, price: 7400,
-    colors: [
-      { name: "Ivory", hex: "#F3EFE3", image: null, sizes: stock([3, 6, 8, 5, 3]) },
-      { name: "Olive", hex: "#6B6A3A", image: null, sizes: stock([2, 5, 6, 4, 2]) },
-    ],
-  },
-  {
-    id: "p3", name: "Lumière Tiered Gown", category: "Bridal",
-    fabric: "Silk organza over tulle · corseted bodice · button back",
-    description:
-      "Cloud-like tiers of organza catch every light in the room. A statement gown with a hand-finished corseted bodice.",
-    cost: 7800, price: 21500,
-    colors: [
-      { name: "Pearl", hex: "#EFEADD", image: null, sizes: stock([1, 3, 4, 3, 1]) },
-      { name: "Blush", hex: "#E9CFC8", image: null, sizes: stock([1, 2, 3, 2, 1]) },
-    ],
-  },
-  {
-    id: "p4", name: "Vesper Wrap Dress", category: "Daywear",
-    fabric: "Sandwashed satin · true wrap · self-tie waist",
-    description:
-      "The dress you reach for on instinct. A flattering true wrap in liquid satin that ties to your shape.",
-    cost: 2100, price: 6200,
-    colors: [
-      { name: "Gold", hex: "#B79E3A", image: null, sizes: stock([4, 7, 9, 6, 4]) },
-      { name: "Noir", hex: "#1C1B19", image: null, sizes: stock([3, 6, 7, 5, 3]) },
-      { name: "Terracotta", hex: "#B5673C", image: null, sizes: stock([2, 4, 5, 3, 2]) },
-    ],
-  },
-];
-function stock(arr) {
-  return SIZES_ALL.map((s, i) => ({ size: s, qty: arr[i] ?? 0 }));
+/* ---- search ---- */
+let searchQuery="";
+const searchbar=document.getElementById("searchbar");
+const searchInput=document.getElementById("searchInput");
+function openSearch(){searchbar.classList.add("on");setTimeout(()=>searchInput.focus(),50);window.scrollTo({top:0,behavior:"smooth"});}
+function closeSearch(){searchbar.classList.remove("on");searchInput.value="";searchQuery="";if(view.name==="store")renderStore();}
+document.getElementById("searchOpen").onclick=()=>{searchbar.classList.contains("on")?closeSearch():openSearch();};
+document.getElementById("searchClose").onclick=closeSearch;
+searchInput.oninput=()=>{searchQuery=searchInput.value.trim().toLowerCase();if(view.name!=="store")go("store");else renderStore();};
+searchInput.onkeydown=e=>{if(e.key==="Escape")closeSearch();};
+function proceedCheckout(){
+  if(!cart.length){toast("Your cart is empty");return;}
+  if(session.role!=="customer"){toast("Please sign in to check out");go("auth",{redirect:"checkout"});return;}
+  go("checkout");
 }
 
-/* ============================ Small components ============================ */
-function GownPlaceholder({ hex = "#B79E3A" }) {
-  return (
-    <svg viewBox="0 0 400 520" className="k-ph" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-      <defs>
-        <linearGradient id={`bg${hex}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#FBF9F4" />
-          <stop offset="100%" stopColor="#F2EDDD" />
-        </linearGradient>
-        <linearGradient id={`sheen${hex}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.35" />
-          <stop offset="45%" stopColor={hex} stopOpacity="0.95" />
-          <stop offset="100%" stopColor="#000000" stopOpacity="0.12" />
-        </linearGradient>
-      </defs>
-      <rect width="400" height="520" fill={`url(#bg${hex})`} />
-      <g>
-        <path
-          d="M200 96 C182 100 176 118 184 140 L168 200 C132 268 122 372 104 452 L296 452 C278 372 268 268 232 200 L216 140 C224 118 218 100 200 96 Z"
-          fill={`url(#sheen${hex})`} stroke="#ffffff" strokeOpacity="0.4" strokeWidth="1" />
-        <path d="M184 140 C195 150 205 150 216 140" fill="none" stroke="#000" strokeOpacity="0.10" strokeWidth="2" />
-        <line x1="100" y1="452" x2="300" y2="452" stroke="#000" strokeOpacity="0.06" strokeWidth="2" />
-      </g>
-    </svg>
-  );
+/* ============================================================
+   AUTH (customer)
+   ============================================================ */
+function renderAuth(){
+  const tab=view.tab||"signin";
+  app.innerHTML=`
+    <div class="auth"><div class="auth-head"><div class="brand" style="cursor:default;font-size:34px">Klyr<span style="letter-spacing:-2px">o</span><span class="hh">♥</span></div></div>
+      <div class="tabs2"><div class="tab2 ${tab==="signin"?"active":""}" data-t="signin">Sign in</div>
+        <div class="tab2 ${tab==="register"?"active":""}" data-t="register">Create account</div></div>
+      <div id="authBody"></div></div>`;
+  document.querySelectorAll(".tab2").forEach(t=>t.onclick=()=>{view.tab=t.dataset.t;renderAuth();});
+  const b=document.getElementById("authBody");
+  if(tab==="signin"){
+    b.innerHTML=`<div class="field"><label>Email</label><input id="li_email" type="email" placeholder="you@email.com"></div>
+      <div class="field"><label>Password</label><input id="li_pass" type="password" placeholder="Your password"></div>
+      <button class="btn gold" style="width:100%" id="doSignin">Sign in</button>
+      <p class="note" style="text-align:center;margin-top:16px">New to Klyro? <span class="link" id="toReg">Create an account</span></p>`;
+    document.getElementById("toReg").onclick=()=>{view.tab="register";renderAuth();};
+    const fn=()=>customerSignin(val("li_email"),val("li_pass"));
+    document.getElementById("doSignin").onclick=fn;document.getElementById("li_pass").onkeydown=e=>{if(e.key==="Enter")fn();};
+  }else{
+    b.innerHTML=`<div class="field"><label>Full name</label><input id="r_name" placeholder="Your name"></div>
+      <div class="field"><label>Email</label><input id="r_email" type="email" placeholder="you@email.com"></div>
+      <div class="field"><label>Phone number</label><input id="r_phone" placeholder="+94 7X XXX XXXX" inputmode="tel"></div>
+      <div class="field"><label>WhatsApp number <span style="text-transform:none;letter-spacing:0;color:var(--gold-deep)">(optional)</span></label><input id="r_whatsapp" placeholder="+94 7X XXX XXXX" inputmode="tel"></div>
+      <div class="field"><label>Password</label><input id="r_pass" type="password" placeholder="At least 6 characters"></div>
+      <div class="field"><label>Confirm password</label><input id="r_pass2" type="password" placeholder="Re-enter password"></div>
+      <button class="btn gold" style="width:100%" id="doReg">Create account</button>
+      <p class="note" style="text-align:center;margin-top:16px">Already a member? <span class="link" id="toLi">Sign in</span></p>`;
+    document.getElementById("toLi").onclick=()=>{view.tab="signin";renderAuth();};
+    document.getElementById("doReg").onclick=customerRegister;
+  }
+}
+const val=id=>document.getElementById(id).value.trim();
+const emailOk=e=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+async function customerRegister(){
+  const name=val("r_name"),email=val("r_email").toLowerCase(),phone=val("r_phone"),whatsapp=val("r_whatsapp"),pass=val("r_pass"),pass2=val("r_pass2");
+  if(!name){toast("Enter your name");return;}
+  if(!emailOk(email)){toast("Enter a valid email");return;}
+  if(!phone){toast("Enter your phone number");return;}
+  if(pass.length<6){toast("Password must be 6+ characters");return;}
+  if(pass!==pass2){toast("Passwords don't match");return;}
+  if(email===CONFIG.admin.email.toLowerCase()||db.staff.some(s=>s.email.toLowerCase()===email)){toast("That email is reserved for staff");return;}
+  if(db.users.some(u=>u.email.toLowerCase()===email)){toast("An account with this email already exists");return;}
+  const btn=document.getElementById("doReg");btn.disabled=true;btn.textContent="Creating…";
+  try{
+    const user={id:uid(),name,email,phone,whatsapp,password:await hashPw(pass),address:{a1:"",a2:"",a3:""},createdAt:new Date().toISOString()};
+    await saveCustomer(user);db.users.push(user);
+    session={role:"customer",id:user.id};sesSave();toast("Welcome to Klyro");afterLogin();
+  }catch(e){console.error(e);toast("Couldn't create account — check your connection");btn.disabled=false;btn.textContent="Create account";}
+}
+async function customerSignin(email,pass){
+  email=(email||"").toLowerCase();
+  // Admin (owner) — full access
+  if(email===CONFIG.admin.email.toLowerCase()&&pass===CONFIG.admin.password){
+    session={role:"admin",id:"admin"};sesSave();renderAcct();toast("Welcome, Admin");view.adminTab="dashboard";go("admin");return;
+  }
+  // Page editor
+  const ed=db.staff.find(s=>s.email.toLowerCase()===email);
+  if(ed&&await pwMatches(pass,ed.password)){
+    session={role:"editor",id:ed.id};sesSave();renderAcct();toast("Welcome, "+ed.name);view.adminTab="products";go("admin");return;
+  }
+  // Customer
+  const u=db.users.find(u=>u.email.toLowerCase()===email);
+  if(!u||!(await pwMatches(pass,u.password))){toast("Incorrect email or password");return;}
+  session={role:"customer",id:u.id};sesSave();toast("Signed in");afterLogin();
+}
+function afterLogin(){renderAcct();if(view.redirect==="checkout"&&cart.length)go("checkout");else go("account");}
+
+/* ============================================================
+   ACCOUNT
+   ============================================================ */
+function renderAccount(){
+  const u=currentUser();if(!u){go("auth");return;}
+  const myOrders=db.orders.filter(o=>o.userId===u.id);
+  app.innerHTML=`
+    <div class="wrap" style="padding-top:30px">
+      <div class="section-head"><div><div class="eyebrow">My Account</div><h2>Hello, ${escapeHtml(u.name.split(" ")[0])}</h2></div>
+        <button class="btn ghost sm" id="out">Sign out</button></div>
+      <div class="two" style="gap:24px">
+        <div class="panel"><div class="form-title">Profile</div>
+          <p class="note" style="margin:0 0 14px">Your saved details — used to speed up checkout.</p>
+          <table style="border:none"><tbody>
+            <tr><td style="border:none;padding:8px 0;color:var(--muted);width:90px">Name</td><td style="border:none;padding:8px 0">${escapeHtml(u.name)}</td></tr>
+            <tr><td style="border:none;padding:8px 0;color:var(--muted)">Email</td><td style="border:none;padding:8px 0">${escapeHtml(u.email)}</td></tr>
+            <tr><td style="border:none;padding:8px 0;color:var(--muted)">Phone</td><td style="border:none;padding:8px 0">${escapeHtml(u.phone)}</td></tr>
+            <tr><td style="border:none;padding:8px 0;color:var(--muted)">WhatsApp</td><td style="border:none;padding:8px 0">${u.whatsapp?escapeHtml(u.whatsapp):'<span class="muted">—</span>'}</td></tr>
+            <tr><td style="border:none;padding:8px 0;color:var(--muted)">Address</td><td style="border:none;padding:8px 0">${[u.address.a1,u.address.a2,u.address.a3].filter(Boolean).map(escapeHtml).join("<br>")||'<span class="muted">Added at first checkout</span>'}</td></tr>
+          </tbody></table></div>
+        <div class="panel"><div class="form-title">Order history</div>
+          ${myOrders.length?myOrders.map(o=>`<div style="padding:12px 0;border-bottom:1px solid var(--line)">
+              <div style="display:flex;justify-content:space-between"><b>${o.id}</b><span>${fmt(o.total)}</span></div>
+              <div class="note" style="margin:4px 0 0">${new Date(o.date).toLocaleDateString()} · ${o.items.reduce((t,i)=>t+i.qty,0)} item(s) · ${o.payment}</div>
+            </div>`).join(""):'<p class="note" style="margin:0">No orders yet. Your purchases will appear here.</p>'}
+        </div></div></div>`;
+  document.getElementById("out").onclick=signOut;
 }
 
-function Img({ src, hex, alt }) {
-  return src
-    ? <img src={src} alt={alt} className="k-img" />
-    : <GownPlaceholder hex={hex} />;
-}
-
-function Eyebrow({ children }) {
-  return <span className="k-eyebrow">{children}</span>;
-}
-
-/* ============================ App ============================ */
-function App() {
-  const [ready, setReady] = useState(false);
-  const [products, setProducts] = useState([]);
-  const [orders, setOrders] = useState([]);
-
-  const [view, setView] = useState("shop"); // shop | product | checkout | confirm | admin-login | admin
-  const [activeProduct, setActiveProduct] = useState(null);
-  const [filter, setFilter] = useState("All");
-
-  const [cart, setCart] = useState([]);
-  const [cartOpen, setCartOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [lastOrder, setLastOrder] = useState(null);
-
-  const [adminAuthed, setAdminAuthed] = useState(false);
-  const [adminTab, setAdminTab] = useState("dashboard");
-
-  /* ---- load ---- */
-  useEffect(() => {
-    (async () => {
-      let p = await storeGet("klyro_products", null);
-      if (!p) { p = SEED; await storeSet("klyro_products", p); }
-      const o = await storeGet("klyro_orders", []);
-      setProducts(p); setOrders(o); setReady(true);
-    })();
-  }, []);
-
-  const persistProducts = async (p) => { setProducts(p); await storeSet("klyro_products", p); };
-  const persistOrders = async (o) => { setOrders(o); await storeSet("klyro_orders", o); };
-
-  const go = (v) => { setView(v); setMenuOpen(false); window.scrollTo(0, 0); };
-
-  const categories = useMemo(
-    () => ["All", ...Array.from(new Set(products.map((p) => p.category).filter(Boolean)))],
-    [products]
-  );
-  const shown = useMemo(
-    () => (filter === "All" ? products : products.filter((p) => p.category === filter)),
-    [products, filter]
-  );
-  const cartCount = cart.reduce((n, i) => n + i.qty, 0);
-  const cartTotal = cart.reduce((n, i) => n + i.qty * i.price, 0);
-
-  /* ---- cart ops ---- */
-  function variantStock(productId, colorName, size) {
-    const p = products.find((x) => x.id === productId);
-    const c = p?.colors.find((x) => x.name === colorName);
-    return c?.sizes.find((x) => x.size === size)?.qty ?? 0;
-  }
-  function inCartQty(key) {
-    return cart.find((i) => i.key === key)?.qty ?? 0;
-  }
-  function addToCart(product, colorIdx, size, qty) {
-    const color = product.colors[colorIdx];
-    const key = `${product.id}|${color.name}|${size}`;
-    const avail = variantStock(product.id, color.name, size) - inCartQty(key);
-    if (avail <= 0) return false;
-    const add = Math.min(qty, avail);
-    setCart((prev) => {
-      const ex = prev.find((i) => i.key === key);
-      if (ex) return prev.map((i) => (i.key === key ? { ...i, qty: i.qty + add } : i));
-      return [...prev, {
-        key, productId: product.id, productName: product.name,
-        colorName: color.name, hex: color.hex, image: color.image,
-        size, price: product.price, cost: product.cost, qty: add,
-      }];
-    });
-    return true;
-  }
-  function setCartQty(key, qty) {
-    const item = cart.find((i) => i.key === key);
-    if (!item) return;
-    const max = variantStock(item.productId, item.colorName, item.size);
-    const q = Math.max(0, Math.min(qty, max));
-    setCart((prev) => q === 0 ? prev.filter((i) => i.key !== key) : prev.map((i) => i.key === key ? { ...i, qty: q } : i));
-  }
-  const removeItem = (key) => setCart((prev) => prev.filter((i) => i.key !== key));
-
-  /* ---- checkout ---- */
-  async function placeOrder(customer, payment) {
-    const next = products.map((p) => ({ ...p, colors: p.colors.map((c) => ({ ...c, sizes: c.sizes.map((s) => ({ ...s })) })) }));
-    cart.forEach((item) => {
-      const p = next.find((x) => x.id === item.productId);
-      const c = p?.colors.find((x) => x.name === item.colorName);
-      const s = c?.sizes.find((x) => x.size === item.size);
-      if (s) s.qty = Math.max(0, s.qty - item.qty);
-    });
-    const order = {
-      id: "KLY-" + Date.now().toString().slice(-6),
-      date: new Date().toISOString(),
-      items: cart.map((i) => ({ ...i })),
-      customer, payment, total: cartTotal,
-    };
-    await persistProducts(next);
-    await persistOrders([order, ...orders]);
-    setLastOrder(order);
-    setCart([]);
-    go("confirm");
-  }
-
-  if (!ready) {
-    return (
-      <div className="k-root k-splash">
-        <style>{CSS}</style>
-        <img src={LOGO} alt="Klyro" className="k-splash-mark" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="k-root">
-      <style>{CSS}</style>
-
-      {/* ---------------- Header ---------------- */}
-      <header className="k-header">
-        <div className="k-header-inner">
-          <button className="k-icon k-only-mobile" aria-label="Menu" onClick={() => setMenuOpen((v) => !v)}>
-            <Ico name="menu" size={20} />
-          </button>
-
-          <nav className="k-nav k-only-desk">
-            <button className={`k-navlink ${view === "shop" ? "is-on" : ""}`} onClick={() => { setFilter("All"); go("shop"); }}>Shop</button>
-            <button className="k-navlink" onClick={() => { setAdminAuthed(false); go("admin-login"); }}>Atelier</button>
-          </nav>
-
-          <button className="k-logo" onClick={() => go("shop")} aria-label="Klyro home">
-            <span className="k-logo-word">Klyro</span>
-            <Ico name="heart" size={13} className="k-logo-heart" fill="currentColor" />
-          </button>
-
-          <div className="k-header-right">
-            <button className="k-icon" aria-label="Atelier" onClick={() => { setAdminAuthed(false); go("admin-login"); }}>
-              <Ico name="lock" size={17} />
-            </button>
-            <button className="k-icon k-cartbtn" aria-label="Bag" onClick={() => setCartOpen(true)}>
-              <Ico name="bag" size={19} />
-              {cartCount > 0 && <span className="k-badge">{cartCount}</span>}
-            </button>
-          </div>
+/* ============================================================
+   CHECKOUT
+   ============================================================ */
+function renderCheckout(){
+  if(!cart.length){go("store");return;}
+  if(session.role!=="customer"){go("auth",{redirect:"checkout"});return;}
+  const u=currentUser();
+  app.innerHTML=`
+    <div class="wrap" style="padding-top:24px"><div class="back" id="back">← Back to shopping</div>
+      <div class="section-head"><div><div class="eyebrow">Secure Checkout · ${escapeHtml(u.email)}</div><h2>Complete your order</h2></div></div>
+      <div class="checkout"><div>
+          <div class="panel" style="margin-bottom:24px"><div class="form-title">Shipping details</div><div class="form-sub">Where should we send your Klyro pieces?</div>
+            <div class="field" data-f="name"><label>Full name</label><input id="f_name" value="${escapeAttr(u.name)}"></div>
+            <div class="field" data-f="phone"><label>Phone number</label><input id="f_phone" value="${escapeAttr(u.phone)}" inputmode="tel"></div>
+            <div class="field" data-f="a1"><label>Address — line 1</label><input id="f_a1" value="${escapeAttr(u.address.a1)}" placeholder="House / apartment, street"></div>
+            <div class="field" data-f="a2"><label>Address — line 2</label><input id="f_a2" value="${escapeAttr(u.address.a2)}" placeholder="Area / suburb"></div>
+            <div class="field" data-f="a3"><label>Address — line 3</label><input id="f_a3" value="${escapeAttr(u.address.a3)}" placeholder="City &amp; postal code"></div></div>
+          <div class="panel"><div class="form-title">Payment</div><div class="form-sub">Credit or debit card.</div>
+            <div class="field" data-f="cardname"><label>Name on card</label><input id="f_cardname" placeholder="As printed on card"></div>
+            <div class="field" data-f="cardno"><label>Card number</label><input id="f_cardno" placeholder="1234 5678 9012 3456" inputmode="numeric" maxlength="19"></div>
+            <div class="two"><div class="field" data-f="exp"><label>Expiry</label><input id="f_exp" placeholder="MM / YY" maxlength="7"></div>
+              <div class="field" data-f="cvc"><label>CVC</label><input id="f_cvc" placeholder="123" inputmode="numeric" maxlength="4"></div></div>
+            <div class="card-badge"><span>VISA</span><span>MASTERCARD</span><span>AMEX</span></div>
+            <div class="note"><b>Demo payment — no real card is charged.</b> To collect real money, connect PayHere (Sri Lanka) or Stripe on a server. Card numbers are never stored.</div></div>
         </div>
+        <div><div class="panel summary"><div class="form-title" style="margin-bottom:16px">Order summary</div>
+          <div id="sumItems"></div>
+          <div class="tot" style="font-family:var(--display);font-size:24px;display:flex;justify-content:space-between;margin:16px 0 18px"><span>Total</span><span>${fmt(cartTotal())}</span></div>
+          <button class="btn gold" style="width:100%" id="placeOrder">Pay ${fmt(cartTotal())}</button></div></div>
+      </div></div>`;
+  document.getElementById("back").onclick=()=>go("store");
+  const si=document.getElementById("sumItems");
+  cart.forEach(i=>{const r=document.createElement("div");r.className="si";
+    r.innerHTML=`<div>${escapeHtml(i.name)}<div class="qn"><span class="mini-sw" style="background:${i.hex}"></span>${escapeHtml(i.colorName)} · ${i.size} · ×${i.qty}</div></div><div>${fmt(i.price*i.qty)}</div>`;si.appendChild(r);});
+  const cn=document.getElementById("f_cardno");cn.oninput=()=>cn.value=cn.value.replace(/\D/g,"").slice(0,16).replace(/(.{4})/g,"$1 ").trim();
+  const exp=document.getElementById("f_exp");exp.oninput=()=>{let v=exp.value.replace(/\D/g,"").slice(0,4);if(v.length>2)v=v.slice(0,2)+" / "+v.slice(2);exp.value=v;};
+  document.getElementById("placeOrder").onclick=placeOrder;
+}
+async function placeOrder(){
+  const g=id=>document.getElementById(id).value.trim();
+  const f={name:g("f_name"),phone:g("f_phone"),a1:g("f_a1"),a2:g("f_a2"),a3:g("f_a3"),
+    cardname:g("f_cardname"),cardno:g("f_cardno").replace(/\s/g,""),exp:g("f_exp"),cvc:g("f_cvc")};
+  document.querySelectorAll(".field").forEach(x=>x.classList.remove("err"));
+  const req=["name","phone","a1","a3","cardname","cardno","exp","cvc"];let bad=null;
+  req.forEach(k=>{if(!f[k]){document.querySelector(`[data-f=${k}]`)?.classList.add("err");bad=bad||k;}});
+  if(f.cardno&&f.cardno.length<15){document.querySelector("[data-f=cardno]").classList.add("err");bad=bad||"cardno";}
+  if(bad){toast("Please complete the highlighted fields");document.querySelector(".field.err input")?.focus();return;}
+  for(const i of cart){if(stockFor(i.productId,i.colorId,i.size)<i.qty){toast(`${i.name} (${i.colorName}/${i.size}) no longer has enough stock`);return;}}
+  const btn=document.getElementById("placeOrder");btn.disabled=true;btn.textContent="Processing…";
 
-        {menuOpen && (
-          <div className="k-mobile-menu">
-            <button onClick={() => { setFilter("All"); go("shop"); }}>Shop</button>
-            <button onClick={() => { setAdminAuthed(false); go("admin-login"); }}>Atelier</button>
-          </div>
-        )}
-      </header>
+  /* === PAYMENT GATEWAY GOES HERE (PayHere / Stripe via a server) === */
 
-      {/* ---------------- Views ---------------- */}
-      <main className="k-main">
-        {view === "shop" && (
-          <ShopView
-            products={shown} categories={categories} filter={filter} setFilter={setFilter}
-            onOpen={(p) => { setActiveProduct(p); go("product"); }}
-          />
-        )}
-
-        {view === "product" && activeProduct && (
-          <ProductView
-            product={products.find((p) => p.id === activeProduct.id) || activeProduct}
-            variantStock={variantStock} inCartQty={inCartQty}
-            onBack={() => go("shop")}
-            onAdd={(c, s, q) => { if (addToCart(products.find((p) => p.id === activeProduct.id), c, s, q)) setCartOpen(true); }}
-          />
-        )}
-
-        {view === "checkout" && (
-          <CheckoutView
-            cart={cart} total={cartTotal}
-            onBack={() => go("shop")}
-            onPlace={placeOrder}
-            setQty={setCartQty} removeItem={removeItem}
-          />
-        )}
-
-        {view === "confirm" && lastOrder && (
-          <ConfirmView order={lastOrder} onShop={() => go("shop")} />
-        )}
-
-        {view === "admin-login" && (
-          <AdminLogin onAuth={() => { setAdminAuthed(true); setAdminTab("dashboard"); go("admin"); }} onBack={() => go("shop")} />
-        )}
-
-        {view === "admin" && adminAuthed && (
-          <AdminView
-            tab={adminTab} setTab={setAdminTab}
-            products={products} orders={orders}
-            persistProducts={persistProducts}
-            onExit={() => { setAdminAuthed(false); go("shop"); }}
-          />
-        )}
-      </main>
-
-      {/* ---------------- Footer ---------------- */}
-      {view !== "admin" && (
-        <footer className="k-footer">
-          <img src={LOGO} alt="Klyro" className="k-foot-seal" />
-          <p className="k-foot-tag">Quietly luxurious dresses, made to be lived in.</p>
-          <div className="k-foot-links">
-            <button onClick={() => { setFilter("All"); go("shop"); }}>Collection</button>
-            <span>·</span>
-            <button onClick={() => { setAdminAuthed(false); go("admin-login"); }}>Atelier login</button>
-          </div>
-          <p className="k-foot-fine">© {new Date().getFullYear()} Klyro. Demo storefront.</p>
-        </footer>
-      )}
-
-      {/* ---------------- Cart drawer ---------------- */}
-      <CartDrawer
-        open={cartOpen} onClose={() => setCartOpen(false)}
-        cart={cart} total={cartTotal} setQty={setCartQty} removeItem={removeItem}
-        onCheckout={() => { setCartOpen(false); go("checkout"); }}
-        onShop={() => { setCartOpen(false); setFilter("All"); go("shop"); }}
-      />
-    </div>
-  );
+  try{
+    const u=currentUser();const touched={};
+    const items=cart.map(i=>{const p=db.products.find(x=>x.id===i.productId);const c=p.colors.find(x=>x.id===i.colorId);
+      c.stock[i.size]=Math.max(0,(Number(c.stock[i.size])||0)-i.qty);touched[p.id]=p;
+      return {productId:i.productId,name:i.name,colorName:i.colorName,size:i.size,qty:i.qty,price:i.price,cost:p.cost||0};});
+    u.address={a1:f.a1,a2:f.a2,a3:f.a3};
+    const order={id:"KLY-"+Date.now().toString().slice(-6),date:new Date().toISOString(),userId:u.id,
+      customer:{name:f.name,email:u.email,phone:f.phone,address:[f.a1,f.a2,f.a3].filter(Boolean)},
+      items,total:cart.reduce((t,i)=>t+i.price*i.qty,0),card:"•••• "+f.cardno.slice(-4),payment:"Paid (demo)"};
+    await saveOrder(order);
+    await Promise.all(Object.values(touched).map(saveProduct));
+    await saveCustomer(u);
+    db.orders.unshift(order);
+    cart=[];updateCartCount();go("confirm",{lastOrder:order});
+  }catch(e){console.error(e);toast("Order failed — please try again");btn.disabled=false;btn.textContent="Pay "+fmt(cartTotal());}
+}
+function renderConfirm(){
+  const o=view.lastOrder;
+  app.innerHTML=`<div class="confirm">
+    <div class="ck"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#937e29" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg></div>
+    <div class="eyebrow">Thank you${o?", "+escapeHtml(o.customer.name.split(" ")[0]):""}</div>
+    <h1>Your order is confirmed</h1><div class="ordno">Order ${o?o.id:""}</div>
+    <p class="muted">Your pieces will be carefully packed and dispatched.</p>
+    <div style="margin-top:26px"><button class="btn gold" id="cont">Continue shopping</button></div></div>`;
+  document.getElementById("cont").onclick=()=>go("store");
 }
 
-/* ============================ Shop ============================ */
-function ShopView({ products, categories, filter, setFilter, onOpen }) {
-  return (
-    <div className="k-fade">
-      <section className="k-hero">
-        <Eyebrow>The Spring Atelier</Eyebrow>
-        <h1 className="k-hero-title">Dressed in light,<br /><em>cut for quiet luxury.</em></h1>
-        <p className="k-hero-sub">
-          Bias-cut silks, hand-finished gowns and everyday pieces with evening manners —
-          each made in limited colourways.
-        </p>
-        <button className="k-btn k-btn-gold" onClick={() => document.getElementById("k-grid")?.scrollIntoView({ behavior: "smooth" })}>
-          Shop the collection <Ico name="arrowRight" size={16} />
-        </button>
-      </section>
-
-      <div className="k-filters">
-        {categories.map((c) => (
-          <button key={c} className={`k-chip ${filter === c ? "is-on" : ""}`} onClick={() => setFilter(c)}>{c}</button>
-        ))}
-      </div>
-
-      <section id="k-grid" className="k-grid">
-        {products.length === 0 && <p className="k-empty">No pieces in this edit yet.</p>}
-        {products.map((p) => {
-          const total = p.colors.reduce((n, c) => n + c.sizes.reduce((m, s) => m + s.qty, 0), 0);
-          return (
-            <article key={p.id} className="k-card" onClick={() => onOpen(p)}>
-              <div className="k-card-img">
-                <Img src={p.colors[0].image} hex={p.colors[0].hex} alt={p.name} />
-                {total === 0 && <span className="k-sold">Sold out</span>}
-              </div>
-              <div className="k-card-body">
-                <span className="k-card-cat">{p.category}</span>
-                <h3 className="k-card-name">{p.name}</h3>
-                <div className="k-card-foot">
-                  <span className="k-price">{money(p.price)}</span>
-                  <span className="k-dots">
-                    {p.colors.map((c) => <i key={c.name} style={{ background: c.hex }} title={c.name} />)}
-                  </span>
-                </div>
-              </div>
-            </article>
-          );
-        })}
-      </section>
-    </div>
-  );
+/* ============================================================
+   STAFF LOGIN + CONSOLE
+   ============================================================ */
+function renderAdmin(){
+  if(!isStaff()){go("auth");return;}
+  const admin=isAdmin();
+  const tab=view.adminTab||(admin?"dashboard":"products");view.adminTab=tab;
+  const tabs=admin?[["dashboard","Overview"],["products","Products & Stock"],["add",view.editing?"Edit Product":"Add Product"],["orders","Orders"],["customers","Customers"],["team","Team"]]
+    :[["products","Products & Stock"],["add",view.editing?"Edit Product":"Add Product"]];
+  app.innerHTML=`
+    <div class="admin-wrap"><div class="admin-top"><div><div class="eyebrow">Klyro · ${admin?"Owner":"Editor"} Console</div>
+        <h1>${admin?"Dashboard":"Catalog"}<span class="role-badge">${admin?"Admin":"Page editor"}</span></h1></div>
+        <button class="btn ghost sm" id="logout">Sign out</button></div>
+      <div class="tabs">${tabs.map(([k,l])=>`<div class="tab ${tab===k?"active":""}" data-tab="${k}">${l}</div>`).join("")}</div>
+      <div id="adminBody"></div></div>`;
+  document.getElementById("logout").onclick=signOut;
+  document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{view.adminTab=t.dataset.tab;if(t.dataset.tab!=="add")view.editing=null;renderAdmin();});
+  const body=document.getElementById("adminBody");
+  ({dashboard:adminDashboard,products:adminProducts,add:adminForm,orders:adminOrders,customers:adminCustomers,team:adminTeam}[tab]||adminProducts)(body);
+}
+function renderStaffLogin(){
+  app.innerHTML=`
+    <div class="auth"><div class="auth-head"><div class="brand" style="cursor:default;font-size:34px">Klyr<span style="letter-spacing:-2px">o</span><span class="hh">♥</span></div>
+        <div class="form-sub" style="text-align:center">Staff sign-in</div></div>
+      <div class="field"><label>Email</label><input id="s_email" type="email" placeholder="staff email"></div>
+      <div class="field"><label>Password</label><input id="s_pass" type="password" placeholder="password"></div>
+      <button class="btn gold" style="width:100%" id="staffLogin">Enter console</button>
+      <div class="note" style="text-align:center">Admin manages products, prices, profit, orders, customers &amp; team. Page editors manage catalog &amp; stock only.</div></div>`;
+  const fn=async()=>{
+    const email=val("s_email").toLowerCase(),pass=val("s_pass");
+    if(email===CONFIG.admin.email.toLowerCase()&&pass===CONFIG.admin.password){
+      session={role:"admin",id:"admin"};sesSave();toast("Welcome, Admin");view.adminTab="dashboard";renderAcct();renderAdmin();return;}
+    const ed=db.staff.find(s=>s.email.toLowerCase()===email);
+    if(ed&&await pwMatches(pass,ed.password)){session={role:"editor",id:ed.id};sesSave();toast("Welcome, "+ed.name);view.adminTab="products";renderAcct();renderAdmin();return;}
+    toast("Incorrect email or password");
+  };
+  document.getElementById("staffLogin").onclick=fn;document.getElementById("s_pass").onkeydown=e=>{if(e.key==="Enter")fn();};
+}
+function salesByProduct(){const m={};db.orders.forEach(o=>o.items.forEach(it=>{
+  if(!m[it.productId])m[it.productId]={units:0,revenue:0,profit:0};
+  m[it.productId].units+=it.qty;m[it.productId].revenue+=it.price*it.qty;m[it.productId].profit+=(it.price-(it.cost||0))*it.qty;}));return m;}
+function adminDashboard(el){
+  const sales=salesByProduct();
+  const revenue=db.orders.reduce((t,o)=>t+o.total,0);
+  const profit=Object.values(sales).reduce((t,s)=>t+s.profit,0);
+  const units=Object.values(sales).reduce((t,s)=>t+s.units,0);
+  const inv=db.products.reduce((t,p)=>t+productStock(p)*p.price,0);
+  el.innerHTML=`
+    <div class="kpis">
+      <div class="kpi"><div class="k">Total revenue</div><div class="v">${fmt(revenue)}</div><div class="sub">${db.orders.length} order${db.orders.length===1?"":"s"}</div></div>
+      <div class="kpi"><div class="k">Total profit</div><div class="v gold">${fmt(profit)}</div><div class="sub">After cost of goods</div></div>
+      <div class="kpi"><div class="k">Units sold</div><div class="v">${units}</div><div class="sub">${db.users.length} registered customer${db.users.length===1?"":"s"}</div></div>
+      <div class="kpi"><div class="k">Inventory value</div><div class="v">${fmt(inv)}</div><div class="sub">At retail price</div></div></div>
+    <div class="note" style="margin:0 0 22px">Live data from your Supabase cloud database. Payments settle to the Klyro account once a payment gateway (PayHere / Stripe) is connected.</div>
+    <div class="section-head"><div><div class="eyebrow">Per product</div><h2 style="font-size:24px">Profit &amp; performance</h2></div></div>
+    <table><thead><tr><th>Product</th><th>Cost</th><th>Sell</th><th>Margin</th><th>Sold</th><th>Profit</th><th>In stock</th></tr></thead><tbody>
+      ${db.products.map(p=>{const s=sales[p.id]||{units:0,profit:0};const m=p.price-(p.cost||0);const stock=productStock(p);
+        return `<tr><td><span class="mini-sw" style="background:${p.colors[0]?.hex||'#ccc'}"></span>${escapeHtml(p.name)}<div class="muted" style="font-size:11px">${escapeHtml(p.fabric)}</div></td>
+          <td>${fmt(p.cost)}</td><td>${isPriced(p)?fmt(p.price):'<span class="pill unp">Unpriced</span>'}</td>
+          <td>${isPriced(p)?fmt(m)+` <span class="muted">(${Math.round(m/p.price*100)}%)</span>`:'—'}</td>
+          <td>${s.units}</td><td><b style="color:var(--gold-deep)">${fmt(s.profit)}</b></td>
+          <td>${stock<=0?'<span class="pill out">Sold out</span>':(stock<=CONFIG.lowStock?`<span class="pill low">${stock} left</span>`:`<span class="pill ok">${stock}</span>`)}</td></tr>`;}).join("")
+        ||`<tr><td colspan="7" class="muted" style="text-align:center;padding:30px">No products yet.</td></tr>`}
+    </tbody></table>`;
+}
+function adminProducts(el){
+  const admin=isAdmin();
+  el.innerHTML=`
+    <div class="admin-top" style="margin-bottom:18px"><div class="muted" style="font-size:13px">${db.products.length} product${db.products.length===1?"":"s"} · stock by colour &amp; size${admin?"":" · pricing by admin"}</div>
+      <button class="btn gold sm" id="addNew">+ Add product</button></div>
+    <table><thead><tr><th>Product</th><th>${admin?"Price":"Selling price"}</th><th>Stock by colour / size</th><th></th></tr></thead><tbody>
+      ${db.products.map(p=>`<tr>
+        <td style="display:flex;gap:12px;align-items:center"><img class="prod-admin-img" src="${imgOf(p.colors[0])}"><div>${escapeHtml(p.name)}<div class="muted" style="font-size:11px">${escapeHtml(p.fabric)}</div></div></td>
+        <td>${isPriced(p)?fmt(p.price):'<span class="pill unp">Unpriced</span>'}${admin?`<div class="muted" style="font-size:11px">cost ${fmt(p.cost)}</div>`:""}</td>
+        <td>${p.colors.map(c=>`<div style="margin-bottom:8px"><div style="font-size:12px;margin-bottom:3px"><span class="mini-sw" style="background:${c.hex}"></span>${escapeHtml(c.name)} <span class="muted">· ${colorStock(c)} total</span></div>
+          <div class="stk-grid">${SIZES.map(s=>`<span class="c">${s} <b>${Number(c.stock?.[s])||0}</b></span>`).join("")}</div></div>`).join("")}</td>
+        <td><div class="row-actions"><span class="ico-btn" data-edit="${p.id}">Edit</span>${admin?`<span class="ico-btn del" data-del="${p.id}">Delete</span>`:""}</div></td></tr>`).join("")
+        ||`<tr><td colspan="4" class="muted" style="text-align:center;padding:30px">No products yet — add your first dress.</td></tr>`}
+    </tbody></table>`;
+  document.getElementById("addNew").onclick=()=>{view.editing=null;view.adminTab="add";renderAdmin();};
+  el.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{view.editing=b.dataset.edit;view.adminTab="add";renderAdmin();});
+  el.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{if(confirm("Delete this product? This cannot be undone.")){
+    try{await deleteProductRow(b.dataset.del);db.products=db.products.filter(p=>p.id!==b.dataset.del);toast("Product deleted");renderAdmin();}
+    catch(e){console.error(e);toast("Delete failed — try again");}}});
+}
+let formColors=[];
+function adminForm(el){
+  const admin=isAdmin();
+  const editing=view.editing?db.products.find(p=>p.id===view.editing):null;
+  formColors=editing?JSON.parse(JSON.stringify(editing.colors)):[newColor()];
+  el.innerHTML=`
+    <div class="pform"><div class="form-title">${editing?"Edit product":"Add a new dress"}</div>
+      <div class="form-sub">${admin?"Cost &amp; selling price drive profit reporting. Add one image per colour.":"Add product details and stock. Pricing is set by the admin."}</div>
+      ${admin?"":'<div class="locked-note">🔒 Cost price, selling price and profit are managed by the admin. Products you add stay hidden from the shop until the admin sets a selling price.</div>'}
+      <div class="two"><div class="field"><label>Product name</label><input id="p_name" value="${editing?escapeAttr(editing.name):""}" placeholder="e.g. Aurelia Slip Gown"></div>
+        <div class="field"><label>Fabric</label><input id="p_fabric" value="${editing?escapeAttr(editing.fabric):""}" placeholder="e.g. Silk Charmeuse"></div></div>
+      <div class="field"><label>Description (shown to customers)</label><textarea id="p_desc" rows="3" placeholder="Describe the cut, feel and details…">${editing?escapeHtml(editing.desc):""}</textarea></div>
+      ${admin?`<div class="two"><div class="field"><label>Cost price (${CONFIG.currency})</label><input id="p_cost" type="number" min="0" value="${editing?editing.cost:""}" placeholder="What it costs you"></div>
+        <div class="field"><label>Selling price (${CONFIG.currency})</label><input id="p_price" type="number" min="0" value="${editing?editing.price:""}" placeholder="What customers pay"></div></div>
+        <div id="marginHint" class="note"></div>`:""}
+      <div class="opt-label" style="margin-top:24px">Colours &amp; stock</div>
+      <div id="colorBlocks"></div>
+      <button class="btn ghost sm" id="addColor" style="margin-top:4px">+ Add another colour</button>
+      <div style="margin-top:28px;display:flex;gap:12px">
+        <button class="btn gold" id="saveProduct">${editing?"Save changes":"Add product"}</button>
+        <button class="btn ghost" id="cancelForm">Cancel</button></div></div>`;
+  function syncForm(){formColors.forEach((col,idx)=>{const nm=document.getElementById(`cname_${idx}`);if(nm)col.name=nm.value;
+    const hx=document.getElementById(`chex_${idx}`);if(hx)col.hex=hx.value;
+    SIZES.forEach(s=>{const i=document.getElementById(`stk_${idx}_${s}`);if(i)col.stock[s]=Number(i.value)||0;});});}
+  function renderColorBlocks(){const cb=document.getElementById("colorBlocks");cb.innerHTML="";
+    formColors.forEach((col,idx)=>{const block=document.createElement("div");block.className="color-block";
+      block.innerHTML=`<div class="cbh"><strong>Colour ${idx+1}</strong>${formColors.length>1?`<span class="ico-btn del" data-rmc="${idx}">Remove</span>`:""}</div>
+        <div style="display:grid;grid-template-columns:140px 1fr;gap:18px">
+          <div><label class="img-drop" id="drop_${idx}">${col.image?`<img src="${col.image}">`:"Click to upload<br>colour photo"}</label>
+            <input type="file" accept="image/*" id="file_${idx}" class="hidden"></div>
+          <div><div class="color-cfg"><div class="field" style="margin:0"><label>Colour name</label><input id="cname_${idx}" value="${escapeAttr(col.name)}" placeholder="e.g. Champagne"></div>
+            <div class="field" style="margin:0"><label>Swatch</label><input type="color" id="chex_${idx}" value="${col.hex||'#b79e3a'}"></div></div>
+            <div class="size-stock">${SIZES.map(s=>`<div><label>${s}</label><input type="number" min="0" id="stk_${idx}_${s}" value="${Number(col.stock?.[s])||0}"></div>`).join("")}</div></div>
+        </div>`;cb.appendChild(block);});
+    formColors.forEach((col,idx)=>{const file=document.getElementById(`file_${idx}`);
+      document.getElementById(`drop_${idx}`).onclick=()=>file.click();
+      file.onchange=async()=>{if(file.files[0]){syncForm();formColors[idx].image=await compressImage(file.files[0]);renderColorBlocks();toast("Image added");}};});
+    cb.querySelectorAll("[data-rmc]").forEach(b=>b.onclick=()=>{syncForm();formColors.splice(+b.dataset.rmc,1);renderColorBlocks();});}
+  renderColorBlocks();
+  if(admin){const updateMargin=()=>{const c=+document.getElementById("p_cost").value,pr=+document.getElementById("p_price").value;const h=document.getElementById("marginHint");
+    if(c>0&&pr>0){const m=pr-c;h.innerHTML=`Margin per unit: <b style="color:var(--gold-deep)">${fmt(m)}</b> (${Math.round(m/pr*100)}%)${m<0?' — selling below cost!':''}`;}else h.innerHTML="";};
+    document.getElementById("p_cost").oninput=updateMargin;document.getElementById("p_price").oninput=updateMargin;updateMargin();}
+  document.getElementById("addColor").onclick=()=>{syncForm();formColors.push(newColor());renderColorBlocks();};
+  document.getElementById("cancelForm").onclick=()=>{view.editing=null;view.adminTab="products";renderAdmin();};
+  document.getElementById("saveProduct").onclick=async()=>{syncForm();
+    const name=document.getElementById("p_name").value.trim();
+    const fabric=document.getElementById("p_fabric").value.trim();
+    const desc=document.getElementById("p_desc").value.trim();
+    if(!name){toast("Add a product name");return;}
+    if(formColors.some(c=>!c.name.trim())){toast("Name every colour");return;}
+    let cost=editing?editing.cost:0,price=editing?editing.price:0;
+    if(admin){cost=+document.getElementById("p_cost").value||0;price=+document.getElementById("p_price").value||0;
+      if(!(cost>0)||!(price>0)){toast("Add cost and selling price");return;}}
+    const product={id:editing?editing.id:uid(),name,fabric:fabric||"—",desc,cost,price,
+      colors:formColors.map(c=>({id:c.id||uid(),name:c.name.trim(),hex:c.hex||"#b79e3a",image:c.image||"",
+        stock:Object.fromEntries(SIZES.map(s=>[s,Number(c.stock?.[s])||0]))}))};
+    const sbtn=document.getElementById("saveProduct");sbtn.disabled=true;sbtn.textContent="Saving…";
+    try{
+      await saveProduct(product);
+      if(editing){const i=db.products.findIndex(p=>p.id===editing.id);db.products[i]=product;}else db.products.push(product);
+      toast(editing?"Product updated":(isPriced(product)?"Product added":"Saved — awaiting admin pricing"));
+      view.editing=null;view.adminTab="products";renderAdmin();
+    }catch(e){console.error(e);toast("Save failed — check your connection");sbtn.disabled=false;sbtn.textContent=editing?"Save changes":"Add product";}};
+}
+function newColor(){return {id:uid(),name:"",hex:"#b79e3a",image:"",stock:Object.fromEntries(SIZES.map(s=>[s,0]))};}
+function adminOrders(el){
+  if(!db.orders.length){el.innerHTML=`<div class="empty"><div class="script">No orders yet</div><p>Orders placed by customers will appear here with shipping details.</p></div>`;return;}
+  el.innerHTML=`<table><thead><tr><th>Order</th><th>Customer</th><th>Ship to</th><th>Items</th><th>Total</th><th>Payment</th></tr></thead><tbody>
+    ${db.orders.map(o=>`<tr><td>${o.id}<div class="muted" style="font-size:11px">${new Date(o.date).toLocaleString()}</div></td>
+      <td>${escapeHtml(o.customer.name)}<div class="muted" style="font-size:11px">${escapeHtml(o.customer.email||"")}<br>${escapeHtml(o.customer.phone)}</div></td>
+      <td style="font-size:12px;color:var(--muted);line-height:1.5">${o.customer.address.map(escapeHtml).join("<br>")}</td>
+      <td style="font-size:12px">${o.items.map(it=>`${it.qty}× ${escapeHtml(it.name)} <span class="muted">(${escapeHtml(it.colorName)}/${it.size})</span>`).join("<br>")}</td>
+      <td><b>${fmt(o.total)}</b></td><td><span class="pill ok">${o.payment}</span><div class="muted" style="font-size:11px;margin-top:3px">${o.card}</div></td></tr>`).join("")}
+  </tbody></table>`;
+}
+function adminCustomers(el){
+  if(!db.users.length){el.innerHTML=`<div class="empty"><div class="script">No customers yet</div><p>Registered customer accounts will appear here.</p></div>`;return;}
+  el.innerHTML=`<div class="admin-top" style="margin-bottom:18px"><div class="muted" style="font-size:13px">${db.users.length} registered customer${db.users.length===1?"":"s"}</div></div>
+    <table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>WhatsApp</th><th>Address</th><th>Orders</th><th>Spent</th><th>Joined</th></tr></thead><tbody>
+    ${db.users.map(u=>{const os=db.orders.filter(o=>o.userId===u.id);const spent=os.reduce((t,o)=>t+o.total,0);
+      return `<tr><td>${escapeHtml(u.name)}</td><td>${escapeHtml(u.email)}</td><td>${escapeHtml(u.phone)}</td>
+        <td>${u.whatsapp?escapeHtml(u.whatsapp):'<span class="muted">—</span>'}</td>
+        <td style="font-size:12px;color:var(--muted)">${[u.address.a1,u.address.a2,u.address.a3].filter(Boolean).map(escapeHtml).join(", ")||"—"}</td>
+        <td>${os.length}</td><td><b>${fmt(spent)}</b></td><td class="muted" style="font-size:12px">${new Date(u.createdAt).toLocaleDateString()}</td></tr>`;}).join("")}
+  </tbody></table>`;
+}
+function adminTeam(el){
+  el.innerHTML=`<div class="two" style="gap:24px;align-items:start"><div>
+      <div class="section-head" style="margin-top:0"><div><div class="eyebrow">Accounts</div><h2 style="font-size:24px">Staff &amp; roles</h2></div></div>
+      <table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr></thead><tbody>
+        <tr><td>${escapeHtml(CONFIG.admin.name)}</td><td>${escapeHtml(CONFIG.admin.email)}</td><td><span class="pill ok">Admin</span></td><td class="muted" style="font-size:11px">Full access</td></tr>
+        ${db.staff.map(s=>`<tr><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.email)}</td><td><span class="pill unp">Page editor</span></td>
+          <td><span class="ico-btn del" data-rms="${s.id}">Remove</span></td></tr>`).join("")}
+      </tbody></table>
+      <div class="note">Page editors manage catalog &amp; stock only. They cannot see cost prices, profit, orders or customer data.</div></div>
+      <div class="panel"><div class="form-title">Add page editor</div><div class="form-sub">Create a catalog-only login.</div>
+        <div class="field"><label>Name</label><input id="e_name" placeholder="Editor name"></div>
+        <div class="field"><label>Email</label><input id="e_email" type="email" placeholder="editor@email.com"></div>
+        <div class="field"><label>Password</label><input id="e_pass" type="password" placeholder="At least 6 characters"></div>
+        <button class="btn gold" id="addEditor">Add editor</button></div></div>`;
+  document.getElementById("addEditor").onclick=async()=>{
+    const name=val("e_name"),email=val("e_email").toLowerCase(),pass=val("e_pass");
+    if(!name){toast("Enter a name");return;}
+    if(!emailOk(email)){toast("Enter a valid email");return;}
+    if(pass.length<6){toast("Password must be 6+ characters");return;}
+    if(email===CONFIG.admin.email.toLowerCase()||db.staff.some(s=>s.email.toLowerCase()===email)||db.users.some(u=>u.email.toLowerCase()===email)){toast("That email is already in use");return;}
+    try{const ed={id:uid(),name,email,password:await hashPw(pass),role:"editor"};await saveStaff(ed);db.staff.push(ed);toast("Editor added");renderAdmin();}
+    catch(e){console.error(e);toast("Couldn't add editor — try again");}};
+  el.querySelectorAll("[data-rms]").forEach(b=>b.onclick=async()=>{if(confirm("Remove this editor account?")){
+    try{await deleteStaffRow(b.dataset.rms);db.staff=db.staff.filter(s=>s.id!==b.dataset.rms);toast("Editor removed");renderAdmin();}
+    catch(e){console.error(e);toast("Remove failed — try again");}}});
 }
 
-/* ============================ Product detail ============================ */
-function ProductView({ product, variantStock, inCartQty, onBack, onAdd }) {
-  const [ci, setCi] = useState(0);
-  const [size, setSize] = useState(null);
-  const [qty, setQty] = useState(1);
-  const color = product.colors[ci];
+/* ---- utils ---- */
+function escapeHtml(s){return (s||"").replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));}
+function escapeAttr(s){return (s||"").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
+let tt;function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("on"),2600);}
+document.querySelectorAll("[data-nav]").forEach(n=>n.onclick=()=>go(n.dataset.nav));
 
-  useEffect(() => { setSize(null); setQty(1); }, [ci]);
-
-  const sizeStock = (s) => variantStock(product.id, color.name, s);
-  const key = size ? `${product.id}|${color.name}|${size}` : null;
-  const remaining = size ? sizeStock(size) - inCartQty(key) : 0;
-  const canAdd = size && remaining > 0;
-
-  return (
-    <div className="k-fade k-pdp">
-      <button className="k-back" onClick={onBack}><Ico name="arrowLeft" size={15} /> Collection</button>
-      <div className="k-pdp-grid">
-        <div className="k-pdp-media">
-          <div className="k-pdp-main"><Img src={color.image} hex={color.hex} alt={`${product.name} — ${color.name}`} /></div>
-          <div className="k-pdp-thumbs">
-            {product.colors.map((c, i) => (
-              <button key={c.name} className={`k-thumb ${i === ci ? "is-on" : ""}`} onClick={() => setCi(i)} aria-label={c.name}>
-                <Img src={c.image} hex={c.hex} alt={c.name} />
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="k-pdp-info">
-          <span className="k-card-cat">{product.category}</span>
-          <h1 className="k-pdp-name">{product.name}</h1>
-          <p className="k-pdp-price">{money(product.price)}</p>
-          <p className="k-pdp-desc">{product.description}</p>
-
-          <div className="k-field">
-            <label className="k-label">Colour — <strong>{color.name}</strong></label>
-            <div className="k-swatches">
-              {product.colors.map((c, i) => (
-                <button key={c.name} className={`k-swatch ${i === ci ? "is-on" : ""}`} onClick={() => setCi(i)} title={c.name}>
-                  <i style={{ background: c.hex }} />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="k-field">
-            <label className="k-label">Size</label>
-            <div className="k-sizes">
-              {color.sizes.map((s) => {
-                const out = s.qty <= 0;
-                return (
-                  <button key={s.size} disabled={out}
-                    className={`k-size ${size === s.size ? "is-on" : ""} ${out ? "is-out" : ""}`}
-                    onClick={() => setSize(s.size)}>
-                    {s.size}
-                  </button>
-                );
-              })}
-            </div>
-            {size && remaining > 0 && remaining <= LOW_STOCK && (
-              <p className="k-lowstock"><Ico name="alert" size={13} /> Only {remaining} left in {color.name}</p>
-            )}
-            {size && remaining <= 0 && <p className="k-lowstock">That size is in your bag or sold out.</p>}
-          </div>
-
-          <div className="k-buyrow">
-            <div className="k-stepper">
-              <button onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Less"><Ico name="minus" size={15} /></button>
-              <span>{qty}</span>
-              <button onClick={() => setQty((q) => Math.min(remaining || 1, q + 1))} aria-label="More"><Ico name="plus" size={15} /></button>
-            </div>
-            <button className="k-btn k-btn-gold k-grow" disabled={!canAdd} onClick={() => onAdd(ci, size, qty)}>
-              {size ? "Add to bag" : "Select a size"} {canAdd && <Ico name="arrowRight" size={16} />}
-            </button>
-          </div>
-
-          <div className="k-spec">
-            <Eyebrow>Fabric &amp; care</Eyebrow>
-            <p>{product.fabric}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ============================ Cart drawer ============================ */
-function CartDrawer({ open, onClose, cart, total, setQty, removeItem, onCheckout, onShop }) {
-  return (
-    <>
-      <div className={`k-overlay ${open ? "is-on" : ""}`} onClick={onClose} />
-      <aside className={`k-drawer ${open ? "is-on" : ""}`} aria-hidden={!open}>
-        <div className="k-drawer-head">
-          <h2>Your bag</h2>
-          <button className="k-icon" onClick={onClose} aria-label="Close"><Ico name="x" size={20} /></button>
-        </div>
-
-        {cart.length === 0 ? (
-          <div className="k-drawer-empty">
-            <Ico name="bag" size={28} />
-            <p>Your bag is waiting.</p>
-            <button className="k-btn k-btn-ghost" onClick={onShop}>Browse the collection</button>
-          </div>
-        ) : (
-          <>
-            <div className="k-drawer-items">
-              {cart.map((i) => (
-                <div key={i.key} className="k-line">
-                  <div className="k-line-img"><Img src={i.image} hex={i.hex} alt={i.productName} /></div>
-                  <div className="k-line-info">
-                    <h4>{i.productName}</h4>
-                    <p className="k-line-meta">{i.colorName} · {i.size}</p>
-                    <div className="k-line-bottom">
-                      <div className="k-stepper k-stepper-sm">
-                        <button onClick={() => setQty(i.key, i.qty - 1)} aria-label="Less"><Ico name="minus" size={13} /></button>
-                        <span>{i.qty}</span>
-                        <button onClick={() => setQty(i.key, i.qty + 1)} aria-label="More"><Ico name="plus" size={13} /></button>
-                      </div>
-                      <span className="k-line-price">{money(i.qty * i.price)}</span>
-                    </div>
-                  </div>
-                  <button className="k-line-rm" onClick={() => removeItem(i.key)} aria-label="Remove"><Ico name="trash" size={15} /></button>
-                </div>
-              ))}
-            </div>
-            <div className="k-drawer-foot">
-              <div className="k-subtotal"><span>Subtotal</span><span>{money(total)}</span></div>
-              <p className="k-ship-note">Shipping &amp; taxes calculated at checkout.</p>
-              <button className="k-btn k-btn-gold k-full" onClick={onCheckout}>Checkout <Ico name="arrowRight" size={16} /></button>
-            </div>
-          </>
-        )}
-      </aside>
-    </>
-  );
-}
-
-/* ============================ Checkout ============================ */
-function CheckoutView({ cart, total, onBack, onPlace, setQty, removeItem }) {
-  const [c, setC] = useState({ name: "", phone: "", a1: "", a2: "", a3: "" });
-  const [card, setCard] = useState({ number: "", name: "", exp: "", cvc: "" });
-  const [errors, setErrors] = useState({});
-  const [placing, setPlacing] = useState(false);
-
-  const shipping = total > 0 ? 850 : 0;
-  const grand = total + shipping;
-
-  function validate() {
-    const e = {};
-    if (!c.name.trim()) e.name = "Add the name for delivery.";
-    if (!/^[0-9 +()-]{7,}$/.test(c.phone.trim())) e.phone = "Add a reachable phone number.";
-    if (!c.a1.trim()) e.a1 = "Address line 1 is required.";
-    const digits = card.number.replace(/\s/g, "");
-    if (digits.length < 12) e.cardNumber = "Enter a valid card number.";
-    if (!card.name.trim()) e.cardName = "Name on card is required.";
-    if (!/^\d{2}\/\d{2}$/.test(card.exp)) e.exp = "MM/YY";
-    if (!/^\d{3,4}$/.test(card.cvc)) e.cvc = "CVC";
-    setErrors(e);
-    return Object.keys(e).length === 0;
+/* ---- boot ---- */
+async function boot(){
+  app.innerHTML=`<div class="loader"><div class="script">Klyro</div><div class="spin"></div><div style="font-size:12px;letter-spacing:.18em;text-transform:uppercase">Loading the boutique…</div></div>`;
+  sesLoad();
+  try{ await loadAll(); }
+  catch(e){
+    app.innerHTML=`<div class="wrap" style="padding-top:60px"><div class="empty"><div class="script">Connection issue</div>
+      <p>Couldn't reach the database. If you just set things up, make sure the Supabase tables and access policies were created, then refresh.</p></div></div>`;
+    renderAcct(); return;
   }
-
-  async function submit() {
-    if (cart.length === 0) return;
-    if (!validate()) { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
-    setPlacing(true);
-    const last4 = card.number.replace(/\s/g, "").slice(-4);
-    await onPlace(
-      { name: c.name.trim(), phone: c.phone.trim(), address: [c.a1, c.a2, c.a3].filter(Boolean) },
-      { method: "Card", last4 }
-    );
-  }
-
-  const fmtCard = (v) => v.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
-  const fmtExp = (v) => { const d = v.replace(/\D/g, "").slice(0, 4); return d.length > 2 ? d.slice(0, 2) + "/" + d.slice(2) : d; };
-
-  if (cart.length === 0) {
-    return (
-      <div className="k-fade k-checkout-empty">
-        <h1 className="k-pdp-name">Your bag is empty</h1>
-        <button className="k-btn k-btn-gold" onClick={onBack}>Back to the collection</button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="k-fade k-checkout">
-      <button className="k-back" onClick={onBack}><Ico name="arrowLeft" size={15} /> Continue shopping</button>
-      <h1 className="k-page-title">Checkout</h1>
-
-      <div className="k-checkout-grid">
-        <div className="k-checkout-forms">
-          <section className="k-panel">
-            <Eyebrow>01 — Delivery details</Eyebrow>
-            <Input label="Full name" value={c.name} err={errors.name} onChange={(v) => setC({ ...c, name: v })} placeholder="Recipient's name" />
-            <Input label="Phone number" value={c.phone} err={errors.phone} onChange={(v) => setC({ ...c, phone: v })} placeholder="+94 ..." />
-            <Input label="Address line 1" value={c.a1} err={errors.a1} onChange={(v) => setC({ ...c, a1: v })} placeholder="House / street" />
-            <Input label="Address line 2" value={c.a2} onChange={(v) => setC({ ...c, a2: v })} placeholder="Area / suburb (optional)" />
-            <Input label="Address line 3" value={c.a3} onChange={(v) => setC({ ...c, a3: v })} placeholder="City / postal code (optional)" />
-          </section>
-
-          <section className="k-panel">
-            <Eyebrow>02 — Payment</Eyebrow>
-            <p className="k-demo-note"><Ico name="lock" size={12} /> Demo checkout — no real card is charged. Connect a payment provider (e.g. Stripe) to go live.</p>
-            <Input label="Card number" value={card.number} err={errors.cardNumber} onChange={(v) => setCard({ ...card, number: fmtCard(v) })} placeholder="0000 0000 0000 0000" inputMode="numeric" />
-            <Input label="Name on card" value={card.name} err={errors.cardName} onChange={(v) => setCard({ ...card, name: v })} placeholder="As printed" />
-            <div className="k-row2">
-              <Input label="Expiry" value={card.exp} err={errors.exp} onChange={(v) => setCard({ ...card, exp: fmtExp(v) })} placeholder="MM/YY" inputMode="numeric" />
-              <Input label="CVC" value={card.cvc} err={errors.cvc} onChange={(v) => setCard({ ...card, cvc: v.replace(/\D/g, "").slice(0, 4) })} placeholder="123" inputMode="numeric" />
-            </div>
-          </section>
-        </div>
-
-        <aside className="k-summary">
-          <h3>Order summary</h3>
-          <div className="k-sum-items">
-            {cart.map((i) => (
-              <div key={i.key} className="k-sum-line">
-                <div className="k-sum-img"><Img src={i.image} hex={i.hex} alt={i.productName} /><span className="k-sum-qty">{i.qty}</span></div>
-                <div className="k-sum-info">
-                  <p className="k-sum-name">{i.productName}</p>
-                  <p className="k-sum-meta">{i.colorName} · {i.size}</p>
-                </div>
-                <button className="k-sum-rm" onClick={() => removeItem(i.key)} aria-label="Remove"><Ico name="x" size={14} /></button>
-                <span className="k-sum-price">{money(i.qty * i.price)}</span>
-              </div>
-            ))}
-          </div>
-          <div className="k-sum-totals">
-            <div><span>Subtotal</span><span>{money(total)}</span></div>
-            <div><span>Shipping</span><span>{money(shipping)}</span></div>
-            <div className="k-sum-grand"><span>Total</span><span>{money(grand)}</span></div>
-          </div>
-          <button className="k-btn k-btn-gold k-full" disabled={placing} onClick={submit}>
-            {placing ? "Placing order…" : <>Place order · {money(grand)}</>}
-          </button>
-        </aside>
-      </div>
-    </div>
-  );
+  updateCartCount();renderAcct();go("store");
 }
-
-function Input({ label, value, onChange, placeholder, err, inputMode }) {
-  return (
-    <div className="k-field">
-      <label className="k-label">{label}</label>
-      <input className={`k-input ${err ? "is-err" : ""}`} value={value} placeholder={placeholder}
-        inputMode={inputMode} onChange={(e) => onChange(e.target.value)} />
-      {err && <span className="k-err">{err}</span>}
-    </div>
-  );
-}
-
-/* ============================ Confirmation ============================ */
-function ConfirmView({ order, onShop }) {
-  return (
-    <div className="k-fade k-confirm">
-      <div className="k-confirm-mark"><Ico name="check" size={30} /></div>
-      <Eyebrow>Order {order.id}</Eyebrow>
-      <h1 className="k-pdp-name">Thank you, {order.customer.name.split(" ")[0]}.</h1>
-      <p className="k-confirm-sub">
-        Your pieces are being prepared with care. A confirmation is on its way to {order.customer.phone}.
-      </p>
-      <div className="k-confirm-card">
-        <div className="k-confirm-rows">
-          {order.items.map((i) => (
-            <div key={i.key} className="k-confirm-line">
-              <span>{i.qty} × {i.productName} <em>· {i.colorName} · {i.size}</em></span>
-              <span>{money(i.qty * i.price)}</span>
-            </div>
-          ))}
-        </div>
-        <div className="k-confirm-ship">
-          <Eyebrow>Shipping to</Eyebrow>
-          <p>{order.customer.name}<br />{order.customer.address.join("<br/>")}</p>
-        </div>
-      </div>
-      <button className="k-btn k-btn-gold" onClick={onShop}>Continue shopping</button>
-    </div>
-  );
-}
-
-/* ============================ Admin login ============================ */
-function AdminLogin({ onAuth, onBack }) {
-  const [pw, setPw] = useState("");
-  const [err, setErr] = useState(false);
-  const submit = () => { if (pw === ADMIN_PASSWORD) onAuth(); else setErr(true); };
-  return (
-    <div className="k-fade k-login">
-      <div className="k-login-card">
-        <Ico name="lock" size={22} className="k-login-ico" />
-        <Eyebrow>Klyro Atelier</Eyebrow>
-        <h1 className="k-login-title">Studio access</h1>
-        <p className="k-login-sub">Manage products, stock and orders.</p>
-        <input type="password" className={`k-input ${err ? "is-err" : ""}`} placeholder="Password"
-          value={pw} onChange={(e) => { setPw(e.target.value); setErr(false); }}
-          onKeyDown={(e) => e.key === "Enter" && submit()} />
-        {err && <span className="k-err">That password isn’t right.</span>}
-        <button className="k-btn k-btn-gold k-full" onClick={submit}>Enter the studio</button>
-        <button className="k-btn k-btn-ghost k-full" onClick={onBack}>Back to store</button>
-        <p className="k-login-hint">Demo password: <code>{ADMIN_PASSWORD}</code></p>
-      </div>
-    </div>
-  );
-}
-
-/* ============================ Admin ============================ */
-function AdminView({ tab, setTab, products, orders, persistProducts, onExit }) {
-  const stats = useMemo(() => {
-    let revenue = 0, cost = 0, units = 0;
-    orders.forEach((o) => o.items.forEach((i) => { revenue += i.price * i.qty; cost += (i.cost || 0) * i.qty; units += i.qty; }));
-    const stockUnits = products.reduce((n, p) => n + p.colors.reduce((m, c) => m + c.sizes.reduce((k, s) => k + s.qty, 0), 0), 0);
-    const stockValue = products.reduce((n, p) => n + p.colors.reduce((m, c) => m + c.sizes.reduce((k, s) => k + s.qty * p.price, 0), 0), 0);
-    let low = 0;
-    products.forEach((p) => p.colors.forEach((c) => c.sizes.forEach((s) => { if (s.qty > 0 && s.qty <= LOW_STOCK) low++; })));
-    return { revenue, cost, profit: revenue - cost, units, stockUnits, stockValue, low, orderCount: orders.length };
-  }, [products, orders]);
-
-  const soldByProduct = useMemo(() => {
-    const m = {};
-    orders.forEach((o) => o.items.forEach((i) => {
-      m[i.productId] = m[i.productId] || { units: 0, profit: 0 };
-      m[i.productId].units += i.qty;
-      m[i.productId].profit += (i.price - (i.cost || 0)) * i.qty;
-    }));
-    return m;
-  }, [orders]);
-
-  return (
-    <div className="k-admin">
-      <aside className="k-admin-side">
-        <div className="k-admin-brand"><span className="k-logo-word">Klyro</span><small>Atelier</small></div>
-        <nav>
-          <button className={tab === "dashboard" ? "is-on" : ""} onClick={() => setTab("dashboard")}><Ico name="dashboard" size={17} /> Dashboard</button>
-          <button className={tab === "products" ? "is-on" : ""} onClick={() => setTab("products")}><Ico name="box" size={17} /> Products &amp; stock</button>
-          <button className={tab === "add" ? "is-on" : ""} onClick={() => setTab("add")}><Ico name="box" size={17} /> Add product</button>
-          <button className={tab === "orders" ? "is-on" : ""} onClick={() => setTab("orders")}><Ico name="receipt" size={17} /> Orders</button>
-        </nav>
-        <button className="k-admin-exit" onClick={onExit}>← Back to store</button>
-      </aside>
-
-      <div className="k-admin-main">
-        {tab === "dashboard" && <AdminDashboard stats={stats} products={products} soldByProduct={soldByProduct} />}
-        {tab === "products" && <AdminProducts products={products} soldByProduct={soldByProduct} persistProducts={persistProducts} />}
-        {tab === "add" && <AdminAdd products={products} persistProducts={persistProducts} onDone={() => setTab("products")} />}
-        {tab === "orders" && <AdminOrders orders={orders} />}
-      </div>
-    </div>
-  );
-}
-
-function Kpi({ icon, label, value, accent }) {
-  return (
-    <div className={`k-kpi ${accent ? "k-kpi-accent" : ""}`}>
-      <div className="k-kpi-ico">{icon}</div>
-      <div><p className="k-kpi-label">{label}</p><p className="k-kpi-value">{value}</p></div>
-    </div>
-  );
-}
-
-function AdminDashboard({ stats, products, soldByProduct }) {
-  const ranked = [...products].sort((a, b) => (soldByProduct[b.id]?.units || 0) - (soldByProduct[a.id]?.units || 0));
-  return (
-    <div className="k-fade">
-      <h1 className="k-admin-title">Dashboard</h1>
-      <div className="k-kpis">
-        <Kpi icon={<Ico name="trendingUp" size={18} />} label="Revenue" value={money(stats.revenue)} accent />
-        <Kpi icon={<Ico name="receipt" size={18} />} label="Profit" value={money(stats.profit)} accent />
-        <Kpi icon={<Ico name="box" size={18} />} label="Units sold" value={stats.units} />
-        <Kpi icon={<Ico name="box" size={18} />} label="Orders" value={stats.orderCount} />
-        <Kpi icon={<Ico name="box" size={18} />} label="In-stock units" value={stats.stockUnits} />
-        <Kpi icon={<Ico name="alert" size={18} />} label="Low-stock variants" value={stats.low} />
-      </div>
-
-      <div className="k-admin-card">
-        <h3>Best sellers &amp; margin</h3>
-        <table className="k-table">
-          <thead><tr><th>Product</th><th>Sold</th><th>Cost</th><th>Price</th><th>Margin</th><th>Profit earned</th></tr></thead>
-          <tbody>
-            {ranked.map((p) => {
-              const s = soldByProduct[p.id] || { units: 0, profit: 0 };
-              const margin = Math.round(((p.price - p.cost) / p.price) * 100);
-              return (
-                <tr key={p.id}>
-                  <td><strong>{p.name}</strong></td>
-                  <td>{s.units}</td>
-                  <td>{money(p.cost)}</td>
-                  <td>{money(p.price)}</td>
-                  <td><span className="k-pill">{margin}%</span></td>
-                  <td className="k-pos">{money(s.profit)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function AdminProducts({ products, soldByProduct, persistProducts }) {
-  function adjust(pid, cName, sz, delta) {
-    const next = products.map((p) => p.id !== pid ? p : {
-      ...p, colors: p.colors.map((c) => c.name !== cName ? c : {
-        ...c, sizes: c.sizes.map((s) => s.size !== sz ? s : { ...s, qty: Math.max(0, s.qty + delta) }),
-      }),
-    });
-    persistProducts(next);
-  }
-  function remove(pid) {
-    if (!window.confirm("Remove this product from the store?")) return;
-    persistProducts(products.filter((p) => p.id !== pid));
-  }
-
-  return (
-    <div className="k-fade">
-      <h1 className="k-admin-title">Products &amp; stock</h1>
-      {products.map((p) => {
-        const sold = soldByProduct[p.id]?.units || 0;
-        const total = p.colors.reduce((n, c) => n + c.sizes.reduce((m, s) => m + s.qty, 0), 0);
-        return (
-          <div key={p.id} className="k-admin-card k-prod-card">
-            <div className="k-prod-head">
-              <div className="k-prod-thumb"><Img src={p.colors[0].image} hex={p.colors[0].hex} alt={p.name} /></div>
-              <div className="k-prod-meta">
-                <h3>{p.name}</h3>
-                <p className="k-prod-sub">{p.category} · cost {money(p.cost)} · price {money(p.price)} · sold {sold} · {total} in stock</p>
-              </div>
-              <button className="k-mini-del" onClick={() => remove(p.id)}><Ico name="trash" size={15} /></button>
-            </div>
-            {p.colors.map((c) => (
-              <div key={c.name} className="k-color-row">
-                <div className="k-color-tag"><i style={{ background: c.hex }} /> {c.name}</div>
-                <div className="k-stock-grid">
-                  {c.sizes.map((s) => (
-                    <div key={s.size} className={`k-stock-cell ${s.qty > 0 && s.qty <= LOW_STOCK ? "is-low" : ""} ${s.qty === 0 ? "is-zero" : ""}`}>
-                      <span className="k-stock-size">{s.size}</span>
-                      <div className="k-stock-ctrl">
-                        <button onClick={() => adjust(p.id, c.name, s.size, -1)}><Ico name="minus" size={12} /></button>
-                        <span className="k-stock-qty">{s.qty}</span>
-                        <button onClick={() => adjust(p.id, c.name, s.size, +1)}><Ico name="plus" size={12} /></button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function AdminAdd({ products, persistProducts, onDone }) {
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState("Daywear");
-  const [fabric, setFabric] = useState("");
-  const [description, setDescription] = useState("");
-  const [cost, setCost] = useState("");
-  const [price, setPrice] = useState("");
-  const [colors, setColors] = useState([blankColor()]);
-  const [err, setErr] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  function blankColor() {
-    return { id: uid(), name: "", hex: "#B79E3A", image: null, sizes: SIZES_ALL.map((s) => ({ size: s, qty: 0 })) };
-  }
-  const setColor = (id, patch) => setColors((cs) => cs.map((c) => c.id === id ? { ...c, ...patch } : c));
-  const setSizeQty = (id, size, qty) =>
-    setColors((cs) => cs.map((c) => c.id !== id ? c : { ...c, sizes: c.sizes.map((s) => s.size === size ? { ...s, qty: Math.max(0, parseInt(qty || 0, 10)) } : s) }));
-
-  async function upload(id, file) {
-    if (!file) return;
-    try { const data = await compressImage(file); setColor(id, { image: data }); }
-    catch { setErr("Couldn’t read that image — try another file."); }
-  }
-
-  async function save() {
-    setErr("");
-    if (!name.trim()) return setErr("Give the product a name.");
-    if (!(Number(cost) >= 0) || !(Number(price) > 0)) return setErr("Add a valid cost and selling price.");
-    if (Number(price) <= Number(cost)) return setErr("Selling price should be above cost.");
-    if (colors.some((c) => !c.name.trim())) return setErr("Name every colour.");
-    setSaving(true);
-    const product = {
-      id: "p" + uid(), name: name.trim(), category, fabric: fabric.trim(),
-      description: description.trim() || "A new Klyro piece.",
-      cost: Number(cost), price: Number(price),
-      colors: colors.map((c) => ({ name: c.name.trim(), hex: c.hex, image: c.image, sizes: c.sizes })),
-    };
-    await persistProducts([product, ...products]);
-    setSaving(false);
-    onDone();
-  }
-
-  return (
-    <div className="k-fade">
-      <h1 className="k-admin-title">Add a product</h1>
-      <div className="k-admin-card">
-        <div className="k-row2">
-          <Input label="Product name" value={name} onChange={setName} placeholder="e.g. Seraphine Slip Gown" />
-          <div className="k-field">
-            <label className="k-label">Category</label>
-            <input className="k-input" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Evening / Daywear / Bridal" />
-          </div>
-        </div>
-        <Input label="Fabric & care" value={fabric} onChange={setFabric} placeholder="e.g. 100% silk · bias-cut · dry clean" />
-        <div className="k-field">
-          <label className="k-label">Description (shown to customers)</label>
-          <textarea className="k-input k-textarea" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Tell the story of the piece…" />
-        </div>
-        <div className="k-row2">
-          <Input label={`Cost price (${CURRENCY.trim()}, admin only)`} value={cost} onChange={(v) => setCost(v.replace(/[^\d.]/g, ""))} placeholder="0" inputMode="numeric" />
-          <Input label={`Selling price (${CURRENCY.trim()})`} value={price} onChange={(v) => setPrice(v.replace(/[^\d.]/g, ""))} placeholder="0" inputMode="numeric" />
-        </div>
-        {cost && price && Number(price) > Number(cost) && (
-          <p className="k-margin-note">Margin per unit: <strong>{money(Number(price) - Number(cost))}</strong> ({Math.round(((price - cost) / price) * 100)}%)</p>
-        )}
-      </div>
-
-      <div className="k-admin-card">
-        <div className="k-color-builder-head">
-          <h3>Colours, images &amp; stock</h3>
-          <button className="k-btn k-btn-ghost k-sm" onClick={() => setColors((cs) => [...cs, blankColor()])}><Ico name="plus" size={14} /> Add colour</button>
-        </div>
-
-        {colors.map((c) => (
-          <div key={c.id} className="k-builder-color">
-            <div className="k-builder-top">
-              <label className="k-img-upload">
-                {c.image ? <img src={c.image} alt="" /> : <span className="k-img-hint"><Ico name="upload" size={16} /> Upload</span>}
-                <input type="file" accept="image/*" onChange={(e) => upload(c.id, e.target.files?.[0])} />
-              </label>
-              <div className="k-builder-fields">
-                <div className="k-row2">
-                  <Input label="Colour name" value={c.name} onChange={(v) => setColor(c.id, { name: v })} placeholder="e.g. Champagne" />
-                  <div className="k-field">
-                    <label className="k-label">Swatch</label>
-                    <div className="k-hex-row">
-                      <input type="color" className="k-color-input" value={c.hex} onChange={(e) => setColor(c.id, { hex: e.target.value })} />
-                      <input className="k-input" value={c.hex} onChange={(e) => setColor(c.id, { hex: e.target.value })} />
-                    </div>
-                  </div>
-                </div>
-                <label className="k-label">Stock per size</label>
-                <div className="k-builder-sizes">
-                  {c.sizes.map((s) => (
-                    <div key={s.size} className="k-builder-size">
-                      <span>{s.size}</span>
-                      <input className="k-input k-qty-input" value={s.qty} inputMode="numeric"
-                        onChange={(e) => setSizeQty(c.id, s.size, e.target.value)} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {colors.length > 1 && (
-                <button className="k-mini-del" onClick={() => setColors((cs) => cs.filter((x) => x.id !== c.id))}><Ico name="trash" size={15} /></button>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {err && <p className="k-err k-err-block"><Ico name="alert" size={14} /> {err}</p>}
-      <div className="k-add-actions">
-        <button className="k-btn k-btn-gold" disabled={saving} onClick={save}>{saving ? "Saving…" : "Publish product"}</button>
-        <button className="k-btn k-btn-ghost" onClick={onDone}>Cancel</button>
-      </div>
-    </div>
-  );
-}
-
-function AdminOrders({ orders }) {
-  if (orders.length === 0)
-    return (<div className="k-fade"><h1 className="k-admin-title">Orders</h1><p className="k-empty">No orders yet. They’ll appear here as customers check out.</p></div>);
-  return (
-    <div className="k-fade">
-      <h1 className="k-admin-title">Orders</h1>
-      {orders.map((o) => (
-        <div key={o.id} className="k-admin-card k-order">
-          <div className="k-order-head">
-            <div>
-              <strong>{o.id}</strong>
-              <span className="k-order-date">{new Date(o.date).toLocaleString()}</span>
-            </div>
-            <span className="k-order-total">{money(o.total)}</span>
-          </div>
-          <div className="k-order-body">
-            <div className="k-order-items">
-              {o.items.map((i) => (
-                <p key={i.key}>{i.qty} × {i.productName} <em>· {i.colorName} · {i.size}</em> — {money(i.qty * i.price)}</p>
-              ))}
-            </div>
-            <div className="k-order-cust">
-              <Eyebrow>Ship to</Eyebrow>
-              <p><strong>{o.customer.name}</strong><br />{o.customer.address.join(", ")}<br />{o.customer.phone}</p>
-              <p className="k-order-pay">Card ending {o.payment.last4}</p>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/* ============================ Styles ============================ */
-const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Pinyon+Script&family=Jost:wght@300;400;500&display=swap');
-
-.k-root{
-  --gold:#B79E3A; --gold-dark:#937D27; --gold-soft:#F2EDDD;
-  --paper:#FBF9F4; --white:#FFFFFF; --ink:#2A2620; --muted:#8C8472; --line:#E8E2D2;
-  --serif:'Cormorant Garamond',Georgia,serif;
-  --script:'Pinyon Script','Snell Roundhand',cursive;
-  --sans:'Jost','Helvetica Neue',Arial,sans-serif;
-  background:var(--paper); color:var(--ink); font-family:var(--sans); font-weight:300;
-  min-height:100vh; -webkit-font-smoothing:antialiased; line-height:1.5;
-}
-.k-root *{box-sizing:border-box;}
-.k-root button{font-family:inherit; cursor:pointer; border:none; background:none; color:inherit;}
-.k-root :focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
-@media (prefers-reduced-motion:reduce){ .k-root *{animation:none!important; transition:none!important;} }
-
-.k-splash{display:flex; align-items:center; justify-content:center; min-height:100vh;}
-.k-splash-mark{width:120px; height:120px; border-radius:50%; object-fit:cover; box-shadow:0 18px 50px rgba(183,158,58,.28); animation:pulse 1.6s ease-in-out infinite;}
-@keyframes pulse{0%,100%{opacity:.75; transform:scale(.97)}50%{opacity:1; transform:scale(1)}}
-
-.k-fade{animation:fade .5s ease both;}
-@keyframes fade{from{opacity:0; transform:translateY(10px)}to{opacity:1; transform:none}}
-
-/* Header */
-.k-header{position:sticky; top:0; z-index:40; background:rgba(251,249,244,.86); backdrop-filter:blur(10px); border-bottom:1px solid var(--line);}
-.k-header-inner{max-width:1180px; margin:0 auto; padding:14px 22px; display:grid; grid-template-columns:1fr auto 1fr; align-items:center;}
-.k-nav{display:flex; gap:26px;}
-.k-navlink{font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); position:relative; padding:4px 0;}
-.k-navlink.is-on,.k-navlink:hover{color:var(--ink);}
-.k-navlink.is-on:after{content:''; position:absolute; left:0; right:0; bottom:-2px; height:1px; background:var(--gold);}
-.k-logo{display:flex; align-items:flex-end; justify-content:center; gap:2px; color:var(--gold);}
-.k-logo-word{font-family:var(--script); font-size:40px; line-height:.8; color:var(--gold);}
-.k-logo-heart{color:var(--gold); margin-bottom:6px;}
-.k-header-right{display:flex; align-items:center; justify-content:flex-end; gap:14px;}
-.k-icon{display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:50%; color:var(--ink); transition:background .2s;}
-.k-icon:hover{background:var(--gold-soft);}
-.k-cartbtn{position:relative;}
-.k-badge{position:absolute; top:2px; right:0; background:var(--gold); color:#fff; font-family:var(--sans); font-size:10px; min-width:17px; height:17px; border-radius:9px; display:flex; align-items:center; justify-content:center; padding:0 4px;}
-.k-only-mobile{display:none;} .k-only-desk{display:flex;}
-.k-mobile-menu{display:flex; flex-direction:column; border-top:1px solid var(--line);}
-.k-mobile-menu button{text-align:left; padding:15px 22px; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); border-bottom:1px solid var(--line);}
-
-.k-main{max-width:1180px; margin:0 auto; padding:0 22px;}
-
-/* Hero */
-.k-hero{text-align:center; padding:84px 0 56px;}
-.k-eyebrow{display:inline-block; font-size:11px; letter-spacing:.32em; text-transform:uppercase; color:var(--gold-dark); margin-bottom:18px;}
-.k-hero-title{font-family:var(--serif); font-weight:500; font-size:clamp(38px,7vw,76px); line-height:1.02; letter-spacing:-.01em; margin:0 0 22px;}
-.k-hero-title em{font-style:italic; color:var(--gold-dark);}
-.k-hero-sub{max-width:520px; margin:0 auto 30px; color:var(--muted); font-size:16px;}
-
-/* Buttons */
-.k-btn{display:inline-flex; align-items:center; justify-content:center; gap:9px; padding:14px 26px; font-size:12px; letter-spacing:.16em; text-transform:uppercase; border-radius:2px; transition:.2s; font-weight:400;}
-.k-btn-gold{background:var(--gold); color:#fff;}
-.k-btn-gold:hover{background:var(--gold-dark);}
-.k-btn-gold:disabled{background:#D8CEAE; cursor:not-allowed; color:#fff;}
-.k-btn-ghost{border:1px solid var(--line); color:var(--ink); background:var(--white);}
-.k-btn-ghost:hover{border-color:var(--gold); color:var(--gold-dark);}
-.k-full{width:100%;} .k-grow{flex:1;} .k-sm{padding:9px 16px;}
-
-/* Filters */
-.k-filters{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; padding:8px 0 36px;}
-.k-chip{padding:8px 18px; border:1px solid var(--line); border-radius:40px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); background:var(--white); transition:.2s;}
-.k-chip.is-on{background:var(--ink); color:#fff; border-color:var(--ink);}
-
-/* Grid */
-.k-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:26px 22px; padding-bottom:80px;}
-.k-card{cursor:pointer; background:transparent;}
-.k-card-img{position:relative; aspect-ratio:3/4; border-radius:3px; overflow:hidden; background:var(--gold-soft);}
-.k-img{width:100%; height:100%; object-fit:cover; display:block; transition:transform .6s ease;}
-.k-ph{width:100%; height:100%; display:block;}
-.k-card:hover .k-img{transform:scale(1.04);}
-.k-card:hover .k-card-name{color:var(--gold-dark);}
-.k-sold{position:absolute; top:12px; left:12px; background:var(--white); color:var(--ink); font-size:10px; letter-spacing:.12em; text-transform:uppercase; padding:5px 10px; border-radius:2px;}
-.k-card-body{padding:14px 2px 0;}
-.k-card-cat{font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--gold-dark);}
-.k-card-name{font-family:var(--serif); font-size:21px; font-weight:500; margin:3px 0 8px; transition:color .2s;}
-.k-card-foot{display:flex; align-items:center; justify-content:space-between;}
-.k-price{font-size:14px; letter-spacing:.04em;}
-.k-dots{display:flex; gap:5px;}
-.k-dots i{width:11px; height:11px; border-radius:50%; box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);}
-.k-empty{text-align:center; color:var(--muted); padding:50px 0; font-family:var(--serif); font-size:20px; font-style:italic;}
-
-/* PDP */
-.k-back{display:inline-flex; align-items:center; gap:7px; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); padding:26px 0 16px;}
-.k-back:hover{color:var(--gold-dark);}
-.k-pdp-grid{display:grid; grid-template-columns:1.05fr 1fr; gap:52px; padding-bottom:80px;}
-.k-pdp-main{aspect-ratio:3/4; border-radius:4px; overflow:hidden; background:var(--gold-soft);}
-.k-pdp-thumbs{display:flex; gap:10px; margin-top:12px;}
-.k-thumb{width:62px; height:80px; border-radius:3px; overflow:hidden; border:1px solid var(--line); opacity:.7; transition:.2s; padding:0;}
-.k-thumb.is-on{opacity:1; border-color:var(--gold);}
-.k-pdp-info{padding-top:6px;}
-.k-pdp-name{font-family:var(--serif); font-weight:500; font-size:clamp(28px,4vw,44px); line-height:1.05; margin:6px 0 10px;}
-.k-pdp-price{font-size:19px; margin:0 0 22px; letter-spacing:.03em;}
-.k-pdp-desc{color:var(--muted); margin:0 0 28px; max-width:42ch;}
-.k-field{margin-bottom:22px;}
-.k-label{display:block; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-bottom:10px;}
-.k-label strong{color:var(--ink); font-weight:500; letter-spacing:.04em;}
-.k-swatches{display:flex; gap:12px;}
-.k-swatch{width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:1px solid transparent; transition:.2s; padding:0;}
-.k-swatch i{width:24px; height:24px; border-radius:50%; box-shadow:inset 0 0 0 1px rgba(0,0,0,.1);}
-.k-swatch.is-on{border-color:var(--gold);}
-.k-sizes{display:flex; gap:9px; flex-wrap:wrap;}
-.k-size{min-width:48px; padding:11px 8px; border:1px solid var(--line); border-radius:2px; font-size:13px; letter-spacing:.06em; background:var(--white); transition:.2s;}
-.k-size:hover:not(:disabled){border-color:var(--gold);}
-.k-size.is-on{background:var(--ink); color:#fff; border-color:var(--ink);}
-.k-size.is-out{opacity:.4; cursor:not-allowed; text-decoration:line-through;}
-.k-lowstock{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--gold-dark); margin:11px 0 0;}
-.k-buyrow{display:flex; gap:12px; margin:8px 0 30px;}
-.k-stepper{display:flex; align-items:center; border:1px solid var(--line); border-radius:2px; background:var(--white);}
-.k-stepper button{width:42px; height:48px; display:flex; align-items:center; justify-content:center; color:var(--ink);}
-.k-stepper span{min-width:34px; text-align:center; font-size:14px;}
-.k-stepper-sm button{width:30px; height:30px;} .k-stepper-sm span{min-width:26px; font-size:13px;}
-.k-spec{border-top:1px solid var(--line); padding-top:20px;}
-.k-spec p{color:var(--muted); margin:8px 0 0; font-size:14px;}
-
-/* Drawer */
-.k-overlay{position:fixed; inset:0; background:rgba(42,38,32,.4); opacity:0; visibility:hidden; transition:.3s; z-index:50;}
-.k-overlay.is-on{opacity:1; visibility:visible;}
-.k-drawer{position:fixed; top:0; right:0; height:100%; width:420px; max-width:92vw; background:var(--paper); z-index:60; transform:translateX(100%); transition:transform .35s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; box-shadow:-20px 0 60px rgba(0,0,0,.12);}
-.k-drawer.is-on{transform:none;}
-.k-drawer-head{display:flex; align-items:center; justify-content:space-between; padding:22px; border-bottom:1px solid var(--line);}
-.k-drawer-head h2{font-family:var(--serif); font-weight:500; font-size:24px; margin:0;}
-.k-drawer-empty{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; color:var(--muted); padding:30px;}
-.k-drawer-items{flex:1; overflow-y:auto; padding:8px 22px;}
-.k-line{display:flex; gap:14px; padding:18px 0; border-bottom:1px solid var(--line); position:relative;}
-.k-line-img{width:74px; height:96px; border-radius:3px; overflow:hidden; flex-shrink:0; background:var(--gold-soft);}
-.k-line-info{flex:1; min-width:0;}
-.k-line-info h4{font-family:var(--serif); font-size:18px; font-weight:500; margin:0 0 3px;}
-.k-line-meta{font-size:12px; color:var(--muted); margin:0 0 12px;}
-.k-line-bottom{display:flex; align-items:center; justify-content:space-between;}
-.k-line-price{font-size:14px;}
-.k-line-rm{position:absolute; top:18px; right:0; color:var(--muted);}
-.k-line-rm:hover{color:#9c4a2f;}
-.k-drawer-foot{padding:20px 22px; border-top:1px solid var(--line);}
-.k-subtotal{display:flex; justify-content:space-between; font-size:16px; margin-bottom:6px;}
-.k-ship-note{font-size:12px; color:var(--muted); margin:0 0 16px;}
-
-/* Checkout */
-.k-checkout{padding-bottom:80px;}
-.k-page-title{font-family:var(--serif); font-weight:500; font-size:clamp(30px,5vw,46px); margin:6px 0 30px;}
-.k-checkout-grid{display:grid; grid-template-columns:1.4fr 1fr; gap:40px; align-items:start;}
-.k-panel{background:var(--white); border:1px solid var(--line); border-radius:4px; padding:28px; margin-bottom:22px;}
-.k-panel .k-eyebrow{margin-bottom:20px;}
-.k-input{width:100%; padding:13px 14px; border:1px solid var(--line); border-radius:2px; background:var(--white); font-family:var(--sans); font-size:14px; color:var(--ink); transition:.2s;}
-.k-input::placeholder{color:#B9B3A4;}
-.k-input:focus{outline:none; border-color:var(--gold);}
-.k-input.is-err{border-color:#C2562F;}
-.k-textarea{resize:vertical;}
-.k-row2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
-.k-err{display:flex; align-items:center; gap:5px; color:#C2562F; font-size:12px; margin-top:6px;}
-.k-err-block{margin:0 0 14px;}
-.k-demo-note{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--gold-dark); background:var(--gold-soft); padding:10px 12px; border-radius:3px; margin:0 0 18px;}
-.k-summary{background:var(--white); border:1px solid var(--line); border-radius:4px; padding:26px; position:sticky; top:90px;}
-.k-summary h3{font-family:var(--serif); font-weight:500; font-size:22px; margin:0 0 18px;}
-.k-sum-items{display:flex; flex-direction:column; gap:14px; margin-bottom:18px;}
-.k-sum-line{display:grid; grid-template-columns:auto 1fr auto auto; align-items:center; gap:12px;}
-.k-sum-img{position:relative; width:48px; height:62px; border-radius:3px; overflow:hidden; background:var(--gold-soft);}
-.k-sum-qty{position:absolute; top:-7px; right:-7px; background:var(--ink); color:#fff; width:19px; height:19px; border-radius:50%; font-size:10px; display:flex; align-items:center; justify-content:center;}
-.k-sum-name{font-family:var(--serif); font-size:15px; margin:0;}
-.k-sum-meta{font-size:11px; color:var(--muted); margin:2px 0 0;}
-.k-sum-rm{color:var(--muted);} .k-sum-rm:hover{color:#C2562F;}
-.k-sum-price{font-size:13px; white-space:nowrap;}
-.k-sum-totals{border-top:1px solid var(--line); padding-top:16px; margin-bottom:20px; display:flex; flex-direction:column; gap:9px;}
-.k-sum-totals>div{display:flex; justify-content:space-between; font-size:14px; color:var(--muted);}
-.k-sum-grand{color:var(--ink)!important; font-size:18px!important; font-weight:400; padding-top:9px; border-top:1px solid var(--line);}
-.k-checkout-empty{text-align:center; padding:90px 0;}
-.k-checkout-empty .k-pdp-name{margin-bottom:24px;}
-
-/* Confirm */
-.k-confirm{text-align:center; max-width:560px; margin:0 auto; padding:70px 0 90px;}
-.k-confirm-mark{width:72px; height:72px; border-radius:50%; background:var(--gold-soft); color:var(--gold-dark); display:flex; align-items:center; justify-content:center; margin:0 auto 22px;}
-.k-confirm-sub{color:var(--muted); margin:0 auto 30px; max-width:42ch;}
-.k-confirm-card{background:var(--white); border:1px solid var(--line); border-radius:4px; padding:26px; text-align:left; margin-bottom:30px;}
-.k-confirm-rows{display:flex; flex-direction:column; gap:10px; padding-bottom:18px; border-bottom:1px solid var(--line);}
-.k-confirm-line{display:flex; justify-content:space-between; font-size:14px; gap:14px;}
-.k-confirm-line em{color:var(--muted); font-style:normal;}
-.k-confirm-ship{padding-top:18px;} .k-confirm-ship p{margin:8px 0 0; font-size:14px; line-height:1.7;}
-
-/* Login */
-.k-login{display:flex; align-items:center; justify-content:center; padding:70px 0 90px;}
-.k-login-card{background:var(--white); border:1px solid var(--line); border-radius:5px; padding:42px 36px; width:100%; max-width:400px; text-align:center;}
-.k-login-ico{color:var(--gold); margin-bottom:14px;}
-.k-login-title{font-family:var(--serif); font-weight:500; font-size:30px; margin:6px 0 4px;}
-.k-login-sub{color:var(--muted); font-size:14px; margin:0 0 24px;}
-.k-login-card .k-input{margin-bottom:14px; text-align:center;}
-.k-login-card .k-btn{margin-bottom:10px;}
-.k-login-hint{font-size:12px; color:var(--muted); margin:14px 0 0;}
-.k-login-hint code{background:var(--gold-soft); padding:2px 7px; border-radius:3px; color:var(--gold-dark);}
-
-/* Admin */
-.k-admin{display:grid; grid-template-columns:230px 1fr; min-height:calc(100vh - 0px); max-width:1280px; margin:0 auto;}
-.k-admin-side{border-right:1px solid var(--line); padding:26px 18px; display:flex; flex-direction:column; background:var(--white); position:sticky; top:0; height:100vh;}
-.k-admin-brand{margin-bottom:30px; padding:0 8px;}
-.k-admin-brand .k-logo-word{font-size:34px; display:block; line-height:.9;}
-.k-admin-brand small{font-size:10px; letter-spacing:.28em; text-transform:uppercase; color:var(--muted);}
-.k-admin-side nav{display:flex; flex-direction:column; gap:4px;}
-.k-admin-side nav button{display:flex; align-items:center; gap:11px; padding:12px 14px; border-radius:4px; font-size:13px; color:var(--muted); text-align:left; transition:.18s;}
-.k-admin-side nav button:hover{background:var(--gold-soft); color:var(--ink);}
-.k-admin-side nav button.is-on{background:var(--ink); color:#fff;}
-.k-admin-exit{margin-top:auto; font-size:12px; letter-spacing:.1em; color:var(--muted); padding:12px 14px; text-align:left;}
-.k-admin-exit:hover{color:var(--gold-dark);}
-.k-admin-main{padding:34px 38px;}
-.k-admin-title{font-family:var(--serif); font-weight:500; font-size:34px; margin:0 0 26px;}
-.k-kpis{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:26px;}
-.k-kpi{background:var(--white); border:1px solid var(--line); border-radius:5px; padding:20px; display:flex; align-items:center; gap:15px;}
-.k-kpi-accent{background:linear-gradient(135deg,#fff, var(--gold-soft));}
-.k-kpi-ico{width:42px; height:42px; border-radius:9px; background:var(--gold-soft); color:var(--gold-dark); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
-.k-kpi-label{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin:0 0 4px;}
-.k-kpi-value{font-family:var(--serif); font-size:26px; font-weight:500; margin:0;}
-.k-admin-card{background:var(--white); border:1px solid var(--line); border-radius:6px; padding:24px; margin-bottom:20px;}
-.k-admin-card h3{font-family:var(--serif); font-weight:500; font-size:21px; margin:0 0 18px;}
-.k-table{width:100%; border-collapse:collapse; font-size:14px;}
-.k-table th{text-align:left; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); font-weight:400; padding:0 14px 12px; border-bottom:1px solid var(--line);}
-.k-table td{padding:14px; border-bottom:1px solid var(--line);}
-.k-table tr:last-child td{border-bottom:none;}
-.k-pill{background:var(--gold-soft); color:var(--gold-dark); padding:3px 10px; border-radius:20px; font-size:12px;}
-.k-pos{color:#3f7d4f;}
-
-.k-prod-card{padding:20px 24px;}
-.k-prod-head{display:flex; align-items:center; gap:16px; padding-bottom:16px; border-bottom:1px solid var(--line); margin-bottom:14px;}
-.k-prod-thumb{width:54px; height:70px; border-radius:4px; overflow:hidden; background:var(--gold-soft); flex-shrink:0;}
-.k-prod-meta{flex:1;} .k-prod-meta h3{margin:0 0 3px; font-size:20px;}
-.k-prod-sub{font-size:12px; color:var(--muted); margin:0;}
-.k-mini-del{width:34px; height:34px; border-radius:6px; color:var(--muted); display:flex; align-items:center; justify-content:center; border:1px solid var(--line);}
-.k-mini-del:hover{color:#C2562F; border-color:#e0bdae;}
-.k-color-row{display:flex; align-items:center; gap:18px; padding:10px 0;}
-.k-color-tag{display:flex; align-items:center; gap:8px; font-size:13px; min-width:120px;}
-.k-color-tag i{width:15px; height:15px; border-radius:50%; box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);}
-.k-stock-grid{display:flex; gap:10px; flex-wrap:wrap;}
-.k-stock-cell{border:1px solid var(--line); border-radius:5px; padding:6px 8px; text-align:center; min-width:62px;}
-.k-stock-cell.is-low{border-color:var(--gold); background:var(--gold-soft);}
-.k-stock-cell.is-zero{opacity:.55;}
-.k-stock-size{display:block; font-size:11px; letter-spacing:.1em; color:var(--muted); margin-bottom:3px;}
-.k-stock-ctrl{display:flex; align-items:center; justify-content:center; gap:4px;}
-.k-stock-ctrl button{width:22px; height:22px; border-radius:4px; background:var(--paper); display:flex; align-items:center; justify-content:center;}
-.k-stock-ctrl button:hover{background:var(--gold-soft);}
-.k-stock-qty{min-width:22px; font-size:14px;}
-
-.k-color-builder-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;}
-.k-color-builder-head h3{margin:0;}
-.k-builder-color{border:1px solid var(--line); border-radius:6px; padding:18px; margin-bottom:14px; background:var(--paper);}
-.k-builder-top{display:flex; gap:18px; align-items:flex-start;}
-.k-img-upload{width:96px; height:124px; border:1px dashed var(--line); border-radius:5px; overflow:hidden; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; background:var(--white); position:relative;}
-.k-img-upload img{width:100%; height:100%; object-fit:cover;}
-.k-img-upload input{position:absolute; inset:0; opacity:0; cursor:pointer;}
-.k-img-hint{display:flex; flex-direction:column; align-items:center; gap:6px; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);}
-.k-builder-fields{flex:1;}
-.k-hex-row{display:flex; gap:8px; align-items:center;}
-.k-color-input{width:46px; height:44px; border:1px solid var(--line); border-radius:3px; padding:3px; background:var(--white); cursor:pointer;}
-.k-builder-sizes{display:flex; gap:10px; flex-wrap:wrap; margin-top:8px;}
-.k-builder-size{text-align:center;}
-.k-builder-size span{display:block; font-size:11px; color:var(--muted); margin-bottom:4px;}
-.k-qty-input{width:58px; text-align:center; padding:8px;}
-.k-margin-note{font-size:13px; color:var(--gold-dark); margin:4px 0 0;}
-.k-add-actions{display:flex; gap:12px;}
-
-.k-order-head{display:flex; align-items:center; justify-content:space-between; padding-bottom:14px; border-bottom:1px solid var(--line); margin-bottom:14px;}
-.k-order-date{font-size:12px; color:var(--muted); margin-left:12px;}
-.k-order-total{font-family:var(--serif); font-size:20px;}
-.k-order-body{display:grid; grid-template-columns:1.5fr 1fr; gap:24px;}
-.k-order-items p{font-size:14px; margin:0 0 7px;} .k-order-items em{color:var(--muted); font-style:normal;}
-.k-order-cust p{font-size:14px; line-height:1.7; margin:8px 0 0;}
-.k-order-pay{color:var(--muted); font-size:13px!important;}
-
-/* Footer */
-.k-footer{text-align:center; padding:60px 22px 50px; border-top:1px solid var(--line); margin-top:30px;}
-.k-foot-seal{width:64px; height:64px; border-radius:50%; object-fit:cover; margin-bottom:16px; box-shadow:0 8px 24px rgba(183,158,58,.22);}
-.k-foot-tag{font-family:var(--serif); font-style:italic; font-size:18px; color:var(--ink); margin:0 0 14px;}
-.k-foot-links{display:flex; gap:10px; justify-content:center; align-items:center; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);}
-.k-foot-links button:hover{color:var(--gold-dark);}
-.k-foot-fine{font-size:11px; color:#B9B3A4; margin:18px 0 0; letter-spacing:.05em;}
-
-/* Responsive */
-@media (max-width:1024px){
-  .k-grid{grid-template-columns:repeat(3,1fr);}
-  .k-kpis{grid-template-columns:repeat(2,1fr);}
-}
-@media (max-width:860px){
-  .k-only-mobile{display:inline-flex;} .k-only-desk{display:none;}
-  .k-header-inner{grid-template-columns:1fr auto 1fr;}
-  .k-pdp-grid{grid-template-columns:1fr; gap:28px;}
-  .k-checkout-grid{grid-template-columns:1fr; gap:24px;}
-  .k-summary{position:static;}
-  .k-order-body{grid-template-columns:1fr; gap:16px;}
-  .k-admin{grid-template-columns:1fr;}
-  .k-admin-side{position:static; height:auto; flex-direction:row; flex-wrap:wrap; align-items:center; gap:10px; padding:14px;}
-  .k-admin-brand{margin:0 12px 0 4px;} .k-admin-brand .k-logo-word{font-size:26px;}
-  .k-admin-side nav{flex-direction:row; flex-wrap:wrap; flex:1;}
-  .k-admin-side nav button{padding:9px 12px;}
-  .k-admin-exit{margin:0;}
-  .k-admin-main{padding:24px 18px;}
-}
-@media (max-width:560px){
-  .k-grid{grid-template-columns:repeat(2,1fr); gap:18px 14px;}
-  .k-hero{padding:50px 0 36px;}
-  .k-row2{grid-template-columns:1fr;}
-  .k-kpis{grid-template-columns:1fr 1fr;}
-  .k-builder-top{flex-wrap:wrap;}
-  .k-card-name{font-size:18px;}
-  .k-table{font-size:12px;} .k-table th,.k-table td{padding:9px 8px;}
-  .k-logo-word{font-size:34px;}
-  .k-admin-side nav button span{display:inline;}
-}
-`;
-
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<App />);
-
-  </script>
-</body>
-</html>
+boot();
+</script>
