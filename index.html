@@ -110,6 +110,8 @@
   .size.disabled{opacity:.32;cursor:not-allowed;text-decoration:line-through}
   .stockline{font-size:12px;color:var(--muted);margin-top:10px;letter-spacing:.04em}
   .stockline b{color:var(--gold-deep);font-weight:500}
+  .size-avail{margin-top:10px}
+  .size-avail .av-line{font-size:12px;color:var(--bad);letter-spacing:.04em;margin-top:3px}
   .qty{display:flex;align-items:center;border:1px solid var(--line);width:fit-content;margin:18px 0 4px}
   .qty button{width:42px;height:44px;font-size:18px}
   .qty span{width:46px;text-align:center;font-size:15px}
@@ -206,6 +208,14 @@
   .color-block .cbh strong{font-family:var(--display);font-size:18px;font-weight:500}
   .img-drop{aspect-ratio:3/4;max-width:140px;border:1px dashed var(--gold-soft);background:#fff;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;overflow:hidden;color:var(--muted);font-size:11px;padding:10px}
   .img-drop img{width:100%;height:100%;object-fit:cover}
+  .img-row{display:flex;flex-wrap:wrap;gap:10px}
+  .img-thumb{position:relative;width:96px;height:128px;border:1px solid var(--line);overflow:hidden;background:#f1ece0}
+  .img-thumb img{width:100%;height:100%;object-fit:cover}
+  .img-thumb .cover{position:absolute;left:0;bottom:0;right:0;background:rgba(33,31,24,.72);color:#fff;font-size:9px;letter-spacing:.14em;text-transform:uppercase;text-align:center;padding:3px}
+  .img-thumb .img-x{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(33,31,24,.78);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1}
+  .img-row .img-drop{width:96px;height:128px;max-width:none;aspect-ratio:auto}
+  .avatar{width:96px;height:96px;border-radius:50%;object-fit:cover;border:1px solid var(--gold-soft);background:#f1ece0}
+  .avatar-wrap{display:flex;align-items:center;gap:16px;margin-bottom:18px}
   .size-stock{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}
   .size-stock label{font-size:11px;letter-spacing:.1em;color:var(--muted);text-align:center;display:block;margin-bottom:5px}
   .size-stock input{text-align:center;padding:9px 4px}
@@ -289,7 +299,7 @@ const CONFIG = {
   currency: "Rs.",
   admin: { name:"Hirusha", email:"hirushafdo1021@gmail.com", password:"Hiru@1021" },
   editorDefault: { name:"Page Editor", email:"editor@klyro.com", password:"editor@1234" },
-  lowStock: 3
+  lowStock: 5
 };
 /* ---- Supabase (shared cloud database) ---- */
 const SUPA_URL = "https://dxfjvhdfxhvusvvzgaxw.supabase.co";
@@ -354,7 +364,7 @@ async function saveStaff(s){const r=await sb.from("staff").upsert({id:s.id,data:
 async function deleteStaffRow(id){const r=await sb.from("staff").delete().eq("id",id);if(r.error)throw r.error;}
 
 /* ---------- image compression ---------- */
-function compressImage(file,max=640,quality=0.72){
+function compressImage(file,max=1200,quality=0.85){
   return new Promise((res,rej)=>{const fr=new FileReader();
     fr.onload=()=>{const img=new Image();img.onload=()=>{
       let{width:w,height:h}=img;
@@ -365,7 +375,27 @@ function compressImage(file,max=640,quality=0.72){
 }
 function ph(hex){const h=hex||"#d8cfa8";return "data:image/svg+xml;utf8,"+encodeURIComponent(
   `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='${h}' stop-opacity='.85'/><stop offset='1' stop-color='${h}' stop-opacity='.4'/></linearGradient></defs><rect width='300' height='400' fill='${h}' opacity='.18'/><rect width='300' height='400' fill='url(%23g)' opacity='.5'/><text x='150' y='205' font-family='Cormorant Garamond,serif' font-size='34' fill='%23ffffff' opacity='.8' text-anchor='middle'>Klyro</text></svg>`);}
-const imgOf=c=>(c.image&&c.image.length>40)?c.image:ph(c.hex);
+const imgOf=c=>{if(c.images&&c.images.length)return c.images[0];if(c.image&&c.image.length>40)return c.image;return ph(c.hex);};
+const imagesOf=c=>(c.images&&c.images.length)?c.images:(c.image&&c.image.length>40?[c.image]:[]);
+
+/* ---- resize (gently) then upload full-quality image to Supabase Storage ---- */
+function resizeToBlob(file,max=1600,quality=0.92){
+  return new Promise((res,rej)=>{const fr=new FileReader();
+    fr.onload=()=>{const img=new Image();img.onload=()=>{
+      let{width:w,height:h}=img;
+      if(w>h&&w>max){h=Math.round(h*max/w);w=max;}else if(h>=w&&h>max){w=Math.round(w*max/h);h=max;}
+      const c=document.createElement("canvas");c.width=w;c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      c.toBlob(b=>b?res(b):rej(new Error("blob")),"image/jpeg",quality);
+    };img.onerror=rej;img.src=fr.result;};fr.onerror=rej;fr.readAsDataURL(file);});
+}
+async function uploadImage(file,folder="products"){
+  const blob=await resizeToBlob(file);
+  const path=folder+"/"+uid()+"-"+Date.now()+".jpg";
+  const up=await sb.storage.from("klyro").upload(path,blob,{contentType:"image/jpeg",upsert:false});
+  if(up.error)throw up.error;
+  return sb.storage.from("klyro").getPublicUrl(path).data.publicUrl;
+}
 
 /* ---------- stock & roles ---------- */
 const colorStock=c=>SIZES.reduce((t,s)=>t+(Number(c.stock?.[s])||0),0);
@@ -408,7 +438,8 @@ function signOut(){session={role:"guest",id:null};sesSave();toast("Signed out");
    STORE
    ============================================================ */
 function renderStore(){
-  let shown=db.products.filter(buyable).concat(db.products.filter(p=>isPriced(p)&&productStock(p)<=0));
+  let shown=db.products.filter(p=>isPriced(p));
+  shown.sort((a,b)=>(b.created||0)-(a.created||0));
   const q=searchQuery;
   if(q){shown=shown.filter(p=>(p.name+" "+p.fabric+" "+(p.desc||"")+" "+p.colors.map(c=>c.name).join(" ")).toLowerCase().includes(q));}
   app.innerHTML=`
@@ -452,6 +483,7 @@ function renderProduct(){
           <div class="opt-label">Colour — <span id="cName">${escapeHtml(c.name)}</span></div>
           <div class="colors" id="colors"></div>
           <div class="opt-label">Size</div><div class="sizes" id="sizes"></div>
+          <div class="size-avail" id="sizeAvail"></div>
           <div class="stockline" id="stockline"></div>
           <div class="opt-label">Quantity</div>
           <div class="qty"><button id="qMinus">−</button><span id="qVal">${view.qty}</span><button id="qPlus">+</button></div>
@@ -460,21 +492,30 @@ function renderProduct(){
             <button class="btn ghost" id="buyNow">Buy it now</button></div>
         </div></div></div>`;
   document.getElementById("back").onclick=()=>go("store");
+  const gimgs=imagesOf(c);
+  if(view.img==null||view.img>=gimgs.length)view.img=0;
+  const mainImg=document.getElementById("mainImg");
+  mainImg.src=gimgs.length?gimgs[view.img]:imgOf(c);
   const thumbs=document.getElementById("thumbs");
-  p.colors.forEach((col,i)=>{const t=document.createElement("img");t.className="thumb"+(i===view.color?" active":"");
-    t.src=imgOf(col);t.title=col.name;t.onclick=()=>{view.color=i;view.size=null;renderProduct();};thumbs.appendChild(t);});
+  gimgs.forEach((src,i)=>{const t=document.createElement("img");t.className="thumb"+(i===view.img?" active":"");
+    t.src=src;t.onclick=()=>{view.img=i;document.getElementById("mainImg").src=src;
+      thumbs.querySelectorAll(".thumb").forEach((x,xi)=>x.classList.toggle("active",xi===i));};thumbs.appendChild(t);});
   const cwrap=document.getElementById("colors");
   p.colors.forEach((col,i)=>{const el=document.createElement("div");el.className="color-pick"+(i===view.color?" active":"");
     el.innerHTML=`<span class="dot" style="background:${col.hex}"></span><span class="cn">${escapeHtml(col.name)}</span>`;
-    el.onclick=()=>{view.color=i;view.size=null;renderProduct();};cwrap.appendChild(el);});
+    el.onclick=()=>{view.color=i;view.size=null;view.img=0;renderProduct();};cwrap.appendChild(el);});
   const swrap=document.getElementById("sizes");
   SIZES.forEach(sz=>{const n=Number(c.stock?.[sz])||0;const el=document.createElement("div");
     el.className="size"+(n<=0?" disabled":"")+(view.size===sz?" active":"");el.textContent=sz;
     if(n>0)el.onclick=()=>{view.size=sz;renderProduct();};swrap.appendChild(el);});
   const sl=document.getElementById("stockline");
+  const SNAME={XS:"Extra Small",S:"Small",M:"Medium",L:"Large",XL:"Extra Large"};
+  const av=document.getElementById("sizeAvail");
+  const lowNotes=SIZES.map(s=>{const n=Number(c.stock?.[s])||0;return (n>0&&n<=CONFIG.lowStock)?`Only ${n} left in ${SNAME[s]}`:null;}).filter(Boolean);
+  av.innerHTML=lowNotes.map(t=>`<div class="av-line">${t}</div>`).join("");
   if(view.size){const n=Number(c.stock?.[view.size])||0;
-    sl.innerHTML=n<=CONFIG.lowStock?`Only <b>${n}</b> left in ${escapeHtml(c.name)} · ${view.size}`:`<b>${n}</b> in stock · ${escapeHtml(c.name)} · ${view.size}`;}
-  else sl.innerHTML=`<span class="muted">Select a size — ${colorStock(c)} available in ${escapeHtml(c.name)}</span>`;
+    sl.innerHTML=n<=0?`<span style="color:var(--bad)">Sold out in this size</span>`:(n<=CONFIG.lowStock?`Only <b>${n}</b> left in ${escapeHtml(c.name)} · ${view.size}`:`In stock · ${escapeHtml(c.name)} · ${view.size}`);}
+  else sl.innerHTML=`<span class="muted">Select your size</span>`;
   document.getElementById("qMinus").onclick=()=>{view.qty=Math.max(1,view.qty-1);document.getElementById("qVal").textContent=view.qty;};
   document.getElementById("qPlus").onclick=()=>{const max=view.size?(Number(c.stock?.[view.size])||0):99;view.qty=Math.min(max||1,view.qty+1);document.getElementById("qVal").textContent=view.qty;};
   document.getElementById("addCart").onclick=()=>{if(addToCart(p,c))openCart();};
@@ -609,7 +650,7 @@ async function customerSignin(email,pass){
   if(!u||!(await pwMatches(pass,u.password))){toast("Incorrect email or password");return;}
   session={role:"customer",id:u.id};sesSave();toast("Signed in");afterLogin();
 }
-function afterLogin(){renderAcct();if(view.redirect==="checkout"&&cart.length)go("checkout");else go("account");}
+function afterLogin(){renderAcct();if(view.redirect==="checkout"&&cart.length)go("checkout");else go("store");}
 
 /* ============================================================
    ACCOUNT
@@ -617,12 +658,25 @@ function afterLogin(){renderAcct();if(view.redirect==="checkout"&&cart.length)go
 function renderAccount(){
   const u=currentUser();if(!u){go("auth");return;}
   const myOrders=db.orders.filter(o=>o.userId===u.id);
+  const totalSpent=myOrders.reduce((t,o)=>t+o.total,0);
+  const totalItems=myOrders.reduce((t,o)=>t+o.items.reduce((s,i)=>s+i.qty,0),0);
   app.innerHTML=`
     <div class="wrap" style="padding-top:30px">
       <div class="section-head"><div><div class="eyebrow">My Account</div><h2>Hello, ${escapeHtml(u.name.split(" ")[0])}</h2></div>
         <button class="btn ghost sm" id="out">Sign out</button></div>
+      <div class="kpis" style="margin-bottom:24px">
+        <div class="kpi"><div class="k">Total spent</div><div class="v gold">${fmt(totalSpent)}</div><div class="sub">with Klyro</div></div>
+        <div class="kpi"><div class="k">Orders</div><div class="v">${myOrders.length}</div><div class="sub">${totalItems} item${totalItems===1?"":"s"} purchased</div></div>
+        <div class="kpi"><div class="k">Member since</div><div class="v" style="font-size:26px">${new Date(u.createdAt).toLocaleDateString(undefined,{month:"short",year:"numeric"})}</div><div class="sub">Klyro account</div></div>
+      </div>
       <div class="two" style="gap:24px">
         <div class="panel"><div class="form-title">Profile</div>
+          <div class="avatar-wrap">
+            <img class="avatar" id="avatarImg" src="${u.avatar||ph('#e9e1c4')}">
+            <div><button class="btn ghost sm" id="avatarBtn">Change photo</button>
+              <input type="file" accept="image/*" id="avatarFile" class="hidden">
+              <div class="note" style="margin-top:6px">JPG or PNG.</div></div>
+          </div>
           <p class="note" style="margin:0 0 14px">Your saved details — used to speed up checkout.</p>
           <table style="border:none"><tbody>
             <tr><td style="border:none;padding:8px 0;color:var(--muted);width:90px">Name</td><td style="border:none;padding:8px 0">${escapeHtml(u.name)}</td></tr>
@@ -638,6 +692,12 @@ function renderAccount(){
             </div>`).join(""):'<p class="note" style="margin:0">No orders yet. Your purchases will appear here.</p>'}
         </div></div></div>`;
   document.getElementById("out").onclick=signOut;
+  const af=document.getElementById("avatarFile");
+  document.getElementById("avatarBtn").onclick=()=>af.click();
+  af.onchange=async()=>{if(!af.files[0])return;const btn=document.getElementById("avatarBtn");btn.disabled=true;btn.textContent="Uploading…";
+    try{const url=await uploadImage(af.files[0],"avatars");u.avatar=url;await saveCustomer(u);document.getElementById("avatarImg").src=url;toast("Photo updated");}
+    catch(e){console.error(e);toast("Upload failed — is the 'klyro' bucket set up?");}
+    btn.disabled=false;btn.textContent="Change photo";};
 }
 
 /* ============================================================
@@ -829,18 +889,25 @@ function adminForm(el){
     const hx=document.getElementById(`chex_${idx}`);if(hx)col.hex=hx.value;
     SIZES.forEach(s=>{const i=document.getElementById(`stk_${idx}_${s}`);if(i)col.stock[s]=Number(i.value)||0;});});}
   function renderColorBlocks(){const cb=document.getElementById("colorBlocks");cb.innerHTML="";
-    formColors.forEach((col,idx)=>{const block=document.createElement("div");block.className="color-block";
+    formColors.forEach((col,idx)=>{if(!col.images)col.images=imagesOf(col);const block=document.createElement("div");block.className="color-block";
       block.innerHTML=`<div class="cbh"><strong>Colour ${idx+1}</strong>${formColors.length>1?`<span class="ico-btn del" data-rmc="${idx}">Remove</span>`:""}</div>
-        <div style="display:grid;grid-template-columns:140px 1fr;gap:18px">
-          <div><label class="img-drop" id="drop_${idx}">${col.image?`<img src="${col.image}">`:"Click to upload<br>colour photo"}</label>
-            <input type="file" accept="image/*" id="file_${idx}" class="hidden"></div>
-          <div><div class="color-cfg"><div class="field" style="margin:0"><label>Colour name</label><input id="cname_${idx}" value="${escapeAttr(col.name)}" placeholder="e.g. Champagne"></div>
+        <div><div class="opt-label" style="margin:0 0 8px">Photos <span style="text-transform:none;letter-spacing:0;color:var(--muted)">(first is the cover · add as many as you like)</span></div>
+          <div class="img-row" id="imgrow_${idx}">
+            ${col.images.map((src,i)=>`<div class="img-thumb"><img src="${src}">${i===0?'<span class="cover">Cover</span>':''}<span class="img-x" data-rmimg="${idx}_${i}">×</span></div>`).join("")}
+            <label class="img-drop" id="drop_${idx}">+ Add<br>photo</label>
+            <input type="file" accept="image/*" id="file_${idx}" class="hidden" multiple>
+          </div></div>
+        <div style="margin-top:14px"><div class="color-cfg"><div class="field" style="margin:0"><label>Colour name</label><input id="cname_${idx}" value="${escapeAttr(col.name)}" placeholder="e.g. Champagne"></div>
             <div class="field" style="margin:0"><label>Swatch</label><input type="color" id="chex_${idx}" value="${col.hex||'#b79e3a'}"></div></div>
-            <div class="size-stock">${SIZES.map(s=>`<div><label>${s}</label><input type="number" min="0" id="stk_${idx}_${s}" value="${Number(col.stock?.[s])||0}"></div>`).join("")}</div></div>
-        </div>`;cb.appendChild(block);});
+            <div class="size-stock">${SIZES.map(s=>`<div><label>${s}</label><input type="number" min="0" id="stk_${idx}_${s}" value="${Number(col.stock?.[s])||0}"></div>`).join("")}</div></div>`;cb.appendChild(block);});
     formColors.forEach((col,idx)=>{const file=document.getElementById(`file_${idx}`);
       document.getElementById(`drop_${idx}`).onclick=()=>file.click();
-      file.onchange=async()=>{if(file.files[0]){syncForm();formColors[idx].image=await compressImage(file.files[0]);renderColorBlocks();toast("Image added");}};});
+      file.onchange=async()=>{const files=[...file.files];if(!files.length)return;syncForm();
+        const drop=document.getElementById(`drop_${idx}`);drop.textContent="Uploading…";
+        try{for(const f of files){const url=await uploadImage(f);formColors[idx].images.push(url);}toast("Photo added");}
+        catch(e){console.error(e);toast("Upload failed — is the 'klyro' bucket set up?");}
+        renderColorBlocks();};});
+    cb.querySelectorAll("[data-rmimg]").forEach(b=>b.onclick=()=>{syncForm();const[ci,ii]=b.dataset.rmimg.split("_").map(Number);formColors[ci].images.splice(ii,1);renderColorBlocks();});
     cb.querySelectorAll("[data-rmc]").forEach(b=>b.onclick=()=>{syncForm();formColors.splice(+b.dataset.rmc,1);renderColorBlocks();});}
   renderColorBlocks();
   if(admin){const updateMargin=()=>{const c=+document.getElementById("p_cost").value,pr=+document.getElementById("p_price").value;const h=document.getElementById("marginHint");
@@ -858,7 +925,8 @@ function adminForm(el){
     if(admin){cost=+document.getElementById("p_cost").value||0;price=+document.getElementById("p_price").value||0;
       if(!(cost>0)||!(price>0)){toast("Add cost and selling price");return;}}
     const product={id:editing?editing.id:uid(),name,fabric:fabric||"—",desc,cost,price,
-      colors:formColors.map(c=>({id:c.id||uid(),name:c.name.trim(),hex:c.hex||"#b79e3a",image:c.image||"",
+      created:editing?(editing.created||Date.now()):Date.now(),
+      colors:formColors.map(c=>({id:c.id||uid(),name:c.name.trim(),hex:c.hex||"#b79e3a",images:(c.images||imagesOf(c)),
         stock:Object.fromEntries(SIZES.map(s=>[s,Number(c.stock?.[s])||0]))}))};
     const sbtn=document.getElementById("saveProduct");sbtn.disabled=true;sbtn.textContent="Saving…";
     try{
@@ -868,7 +936,7 @@ function adminForm(el){
       view.editing=null;view.adminTab="products";renderAdmin();
     }catch(e){console.error(e);toast("Save failed — check your connection");sbtn.disabled=false;sbtn.textContent=editing?"Save changes":"Add product";}};
 }
-function newColor(){return {id:uid(),name:"",hex:"#b79e3a",image:"",stock:Object.fromEntries(SIZES.map(s=>[s,0]))};}
+function newColor(){return {id:uid(),name:"",hex:"#b79e3a",images:[],stock:Object.fromEntries(SIZES.map(s=>[s,0]))};}
 function adminOrders(el){
   if(!db.orders.length){el.innerHTML=`<div class="empty"><div class="script">No orders yet</div><p>Orders placed by customers will appear here with shipping details.</p></div>`;return;}
   el.innerHTML=`<table><thead><tr><th>Order</th><th>Customer</th><th>Ship to</th><th>Items</th><th>Total</th><th>Payment</th></tr></thead><tbody>
